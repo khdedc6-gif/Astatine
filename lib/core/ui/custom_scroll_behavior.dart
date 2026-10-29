@@ -15,7 +15,5 @@ class CustomScrollBehavior extends MaterialScrollBehavior {
 
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) =>
-      const BouncingScrollPhysics(
-        parent: AlwaysScrollableScrollPhysics(),
-      );
+      const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
 }
