@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.8">
+    <circle cx="120" cy="152" r="22" fill="#f3f4f7"/>
+    <circle cx="196" cy="122" r="18" fill="#e7ebf0"/>
+    <circle cx="306" cy="140" r="28" fill="#ffffff"/>
+    <circle cx="390" cy="186" r="22" fill="#dfe8ef"/>
+    <circle cx="170" cy="270" r="34" fill="#f2f5f9"/>
+    <circle cx="286" cy="246" r="28" fill="#eff4fa"/>
+    <circle cx="350" cy="314" r="28" fill="#ffffff"/>
+    <circle cx="214" cy="356" r="30" fill="#e3ebf3"/>
+    <circle cx="332" cy="392" r="26" fill="#f7f9fc"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#f8fafb" opacity="0.9"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#7b8592">BaSO4</text>
+</svg>

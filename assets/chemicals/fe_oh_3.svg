@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.82">
+    <circle cx="120" cy="150" r="24" fill="#d4885c"/>
+    <circle cx="196" cy="120" r="20" fill="#b86136"/>
+    <circle cx="306" cy="136" r="28" fill="#e4a16d"/>
+    <circle cx="392" cy="186" r="22" fill="#9e4b2b"/>
+    <circle cx="170" cy="270" r="36" fill="#c56d3e"/>
+    <circle cx="286" cy="246" r="28" fill="#e38b4f"/>
+    <circle cx="350" cy="314" r="28" fill="#a95d35"/>
+    <circle cx="214" cy="356" r="32" fill="#cc7c4a"/>
+    <circle cx="334" cy="392" r="26" fill="#f0b27d"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#b55d31" opacity="0.9"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="62" font-weight="700" fill="#fffaf5">Fe(OH)3</text>
+</svg>

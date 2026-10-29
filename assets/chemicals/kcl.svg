@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.82">
+    <circle cx="120" cy="152" r="22" fill="#eef2f5"/>
+    <circle cx="194" cy="122" r="18" fill="#dfe5eb"/>
+    <circle cx="308" cy="140" r="28" fill="#f7fbff"/>
+    <circle cx="392" cy="188" r="22" fill="#d5dee7"/>
+    <circle cx="170" cy="270" r="34" fill="#edf1f5"/>
+    <circle cx="286" cy="246" r="28" fill="#e2e9ef"/>
+    <circle cx="350" cy="314" r="28" fill="#ffffff"/>
+    <circle cx="214" cy="356" r="30" fill="#dfe7ee"/>
+    <circle cx="332" cy="392" r="26" fill="#edf2f8"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#f2f6fa" opacity="0.9"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#687b8d">KCl</text>
+</svg>

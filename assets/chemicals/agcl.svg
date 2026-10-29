@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.82">
+    <circle cx="120" cy="152" r="24" fill="#ffffff"/>
+    <circle cx="196" cy="120" r="18" fill="#f4f4f5"/>
+    <circle cx="304" cy="138" r="28" fill="#eff2f6"/>
+    <circle cx="390" cy="186" r="22" fill="#ffffff"/>
+    <circle cx="170" cy="270" r="36" fill="#f8f9fb"/>
+    <circle cx="284" cy="246" r="30" fill="#e7ebf0"/>
+    <circle cx="350" cy="314" r="28" fill="#f0f4f8"/>
+    <circle cx="214" cy="356" r="32" fill="#dfe5ec"/>
+    <circle cx="334" cy="392" r="26" fill="#fbfcfd"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#f5f7fa" opacity="0.9"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#6e7c8c">AgCl</text>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.82">
+    <circle cx="120" cy="150" r="24" fill="#272f39"/>
+    <circle cx="196" cy="120" r="20" fill="#44505b"/>
+    <circle cx="306" cy="138" r="28" fill="#1d2733"/>
+    <circle cx="390" cy="186" r="22" fill="#4d5866"/>
+    <circle cx="170" cy="270" r="36" fill="#2d3745"/>
+    <circle cx="286" cy="246" r="28" fill="#3b4855"/>
+    <circle cx="350" cy="314" r="28" fill="#1b2530"/>
+    <circle cx="214" cy="356" r="32" fill="#49596a"/>
+    <circle cx="334" cy="392" r="26" fill="#212d39"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#2f3c4d" opacity="0.9"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="76" font-weight="700" fill="#edf5ff">CuS</text>
+</svg>

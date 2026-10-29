@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.85">
+    <circle cx="120" cy="150" r="24" fill="#4a4a4d"/>
+    <circle cx="202" cy="120" r="18" fill="#7a7c7f"/>
+    <circle cx="312" cy="136" r="28" fill="#22252a"/>
+    <circle cx="388" cy="188" r="22" fill="#6d7179"/>
+    <circle cx="170" cy="268" r="36" fill="#343a42"/>
+    <circle cx="282" cy="250" r="28" fill="#5c6167"/>
+    <circle cx="350" cy="318" r="28" fill="#20252c"/>
+    <circle cx="214" cy="354" r="30" fill="#5b636b"/>
+    <circle cx="332" cy="390" r="26" fill="#262d36"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#3f474e" opacity="0.9"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="76" font-weight="700" fill="#f3f8ff">CuO</text>
+</svg>

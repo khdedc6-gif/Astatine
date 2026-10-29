@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.85">
+    <circle cx="148" cy="164" r="22" fill="#c8d2dc"/>
+    <circle cx="222" cy="118" r="18" fill="#dfeaf2"/>
+    <circle cx="314" cy="146" r="24" fill="#9aa8af"/>
+    <circle cx="376" cy="206" r="20" fill="#d4dfe9"/>
+    <circle cx="176" cy="268" r="34" fill="#c5d2db"/>
+    <circle cx="286" cy="250" r="28" fill="#8595a3"/>
+    <circle cx="352" cy="316" r="26" fill="#deeaef"/>
+    <circle cx="210" cy="360" r="28" fill="#a6b7c5"/>
+    <circle cx="330" cy="388" r="22" fill="#d9e5f0"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#8aa1b0" opacity="0.82"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#eff6fb">Na2O</text>
+</svg>

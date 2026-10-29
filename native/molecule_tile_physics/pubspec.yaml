@@ -1,0 +1,12 @@
+name: molecule_tile_physics
+description: Native C++ particle simulation for AstatineEdu.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  hooks: ^2.0.0
+  logging: ^1.3.0
+  native_toolchain_c: ^0.19.0

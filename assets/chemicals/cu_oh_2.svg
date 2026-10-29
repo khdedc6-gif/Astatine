@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.82">
+    <circle cx="120" cy="148" r="24" fill="#94d0d8"/>
+    <circle cx="196" cy="118" r="20" fill="#70b9c5"/>
+    <circle cx="306" cy="136" r="28" fill="#d8f7f8"/>
+    <circle cx="392" cy="184" r="22" fill="#76c4d1"/>
+    <circle cx="170" cy="270" r="36" fill="#9bd7e1"/>
+    <circle cx="284" cy="246" r="28" fill="#5caab4"/>
+    <circle cx="350" cy="312" r="28" fill="#d9f9fb"/>
+    <circle cx="214" cy="356" r="32" fill="#80d0da"/>
+    <circle cx="334" cy="392" r="26" fill="#a4dde7"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="#63b8c7" opacity="0.82"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="62" font-weight="700" fill="#f5ffff">Cu(OH)2</text>
+</svg>

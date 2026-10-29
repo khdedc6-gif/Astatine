@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="g" cx="40%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#e7edf1"/>
+      <stop offset="45%" stop-color="#7d8993"/>
+      <stop offset="100%" stop-color="#303843"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.8">
+    <circle cx="122" cy="152" r="28" fill="#8f9aa3"/>
+    <circle cx="198" cy="120" r="22" fill="#c8d0d6"/>
+    <circle cx="306" cy="138" r="32" fill="#6a7581"/>
+    <circle cx="392" cy="174" r="24" fill="#dfe6ea"/>
+    <circle cx="178" cy="260" r="38" fill="#7f8790"/>
+    <circle cx="280" cy="246" r="32" fill="#aab3bc"/>
+    <circle cx="344" cy="314" r="28" fill="#77818c"/>
+    <circle cx="214" cy="352" r="32" fill="#dfe4e9"/>
+    <circle cx="332" cy="390" r="28" fill="#919ca6"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="url(#g)" opacity="0.85"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="100" font-weight="700" fill="#edf3f8">Fe</text>
+</svg>

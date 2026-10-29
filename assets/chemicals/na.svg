@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#dfe7ee"/>
+      <stop offset="50%" stop-color="#b9c7d1"/>
+      <stop offset="100%" stop-color="#7a8fa3"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.9">
+    <circle cx="118" cy="140" r="28" fill="#dbe6ee"/>
+    <circle cx="198" cy="110" r="20" fill="#c4cfdb"/>
+    <circle cx="310" cy="124" r="34" fill="#edf3f8"/>
+    <circle cx="384" cy="170" r="24" fill="#bccad9"/>
+    <circle cx="160" cy="260" r="38" fill="#ddeaf3"/>
+    <circle cx="276" cy="238" r="32" fill="#b8c5d5"/>
+    <circle cx="356" cy="294" r="26" fill="#dfe8f1"/>
+    <circle cx="214" cy="360" r="35" fill="#c7d2dc"/>
+    <circle cx="330" cy="372" r="27" fill="#e7edf5"/>
+  </g>
+  <circle cx="256" cy="256" r="124" fill="url(#g)" opacity="0.82"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="110" font-weight="700" fill="#f8fbff">Na</text>
+</svg>

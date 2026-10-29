@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ffd7c4"/>
+      <stop offset="38%" stop-color="#d97342"/>
+      <stop offset="100%" stop-color="#7d3416"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="transparent"/>
+  <g opacity="0.9">
+    <circle cx="122" cy="146" r="26" fill="#d9693d"/>
+    <circle cx="204" cy="116" r="22" fill="#c35a2d"/>
+    <circle cx="306" cy="132" r="30" fill="#f5b38d"/>
+    <circle cx="382" cy="178" r="24" fill="#aa4a27"/>
+    <circle cx="172" cy="264" r="40" fill="#e68d58"/>
+    <circle cx="286" cy="246" r="32" fill="#c95d34"/>
+    <circle cx="350" cy="310" r="28" fill="#f3a46b"/>
+    <circle cx="218" cy="356" r="34" fill="#a64b2a"/>
+    <circle cx="330" cy="382" r="28" fill="#d56d3b"/>
+  </g>
+  <circle cx="256" cy="256" r="128" fill="url(#g)" opacity="0.85"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="100" font-weight="700" fill="#fff9f2">Cu</text>
+</svg>
