@@ -137,31 +137,23 @@ class MoleculeTile {
         const Color(0xFF6366F1),
         const Color(0xFF4338CA),
       ),
-      'Ba' || 'Ca' || 'Mg' || 'Al' || 'Zn' || 'Pb' => (
-        steelBackground,
-        steelBorder,
-        const Color(0xFF334155),
-      ),
-      'Fe' => (
-        const Color(0xFF475569),
-        const Color(0xFF1E293B),
-        Colors.white,
-      ),
-      'Cu' => (
-        const Color(0xFFEA580C),
-        const Color(0xFF9A3412),
-        Colors.white,
-      ),
+      'Ba' ||
+      'Ca' ||
+      'Mg' ||
+      'Al' ||
+      'Zn' ||
+      'Pb' => (steelBackground, steelBorder, const Color(0xFF334155)),
+      'Fe' => (const Color(0xFF475569), const Color(0xFF1E293B), Colors.white),
+      'Cu' => (const Color(0xFFEA580C), const Color(0xFF9A3412), Colors.white),
       'Ag' => (
         const Color(0xFFF8FAFC),
         const Color(0xFF38BDF8),
         const Color(0xFF0369A1),
       ),
-      'NaOH' || 'KOH' || 'Ba(OH)2' || 'Ca(OH)2' => (
-        paleGreen,
-        greenBorder,
-        const Color(0xFF166534),
-      ),
+      'NaOH' ||
+      'KOH' ||
+      'Ba(OH)2' ||
+      'Ca(OH)2' => (paleGreen, greenBorder, const Color(0xFF166534)),
       'Cu(OH)2' => (
         const Color(0xFF0284C7),
         const Color(0xFF0369A1),
@@ -187,11 +179,7 @@ class MoleculeTile {
         const Color(0xFFF59E0B),
         const Color(0xFF92400E),
       ),
-      'CuO' => (
-        const Color(0xFF1E293B),
-        const Color(0xFF0F172A),
-        Colors.white,
-      ),
+      'CuO' => (const Color(0xFF1E293B), const Color(0xFF0F172A), Colors.white),
       'Fe2O3' => (
         const Color(0xFF881337),
         const Color(0xFF4C0519),
@@ -227,24 +215,14 @@ class MoleculeTile {
         const Color(0xFF94A3B8),
         const Color(0xFF334155),
       ),
-      'CuS' => (
-        const Color(0xFF0F172A),
-        Colors.black,
-        Colors.white,
-      ),
-      _ when formula.contains('Cl') ||
-          formula.contains('NO3') ||
-          formula.endsWith('SO4') ||
-          formula.endsWith('CO3') => (
-        paleYellow,
-        yellowBorder,
-        const Color(0xFF854D0E),
-      ),
-      _ => (
-        paleGray,
-        grayBorder,
-        const Color(0xFF334155),
-      ),
+      'CuS' => (const Color(0xFF0F172A), Colors.black, Colors.white),
+      _
+          when formula.contains('Cl') ||
+              formula.contains('NO3') ||
+              formula.endsWith('SO4') ||
+              formula.endsWith('CO3') =>
+        (paleYellow, yellowBorder, const Color(0xFF854D0E)),
+      _ => (paleGray, grayBorder, const Color(0xFF334155)),
     };
   }
 }

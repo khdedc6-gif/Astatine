@@ -549,11 +549,11 @@ class _UpdateLogDialogState extends State<UpdateLogDialog> {
         color: selected
             ? palette.accent.withValues(alpha: 0.12)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
           key: ValueKey('release-version-${note.id}'),
           onTap: () => _select(note),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Row(
@@ -720,15 +720,15 @@ class _UpdateLogDialogState extends State<UpdateLogDialog> {
                     vertical: 10,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: palette.border),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: palette.border),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: palette.accent, width: 1.4),
                   ),
                 ),
@@ -797,7 +797,7 @@ class _UpdateLogDialogState extends State<UpdateLogDialog> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: palette.background.withValues(alpha: 0.52),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: palette.border),
       ),
       child: Column(
@@ -834,15 +834,15 @@ class _UpdateLogDialogState extends State<UpdateLogDialog> {
                 fillColor: palette.card,
                 contentPadding: const EdgeInsets.all(12),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: palette.border),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: palette.border),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: palette.accent, width: 1.4),
                 ),
               ),

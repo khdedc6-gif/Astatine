@@ -19,7 +19,7 @@ Current feature groups, in application order:
    `20261013084000_rate_limit_chat_and_harden_channel_inserts.sql` enforces
    channel write permissions, 2,000-character message limits, and a shared
    five-message-per-ten-second limit across chat tables. The `generate-ai`
-   Edge Function separately enforces a 30-request rolling 24-hour quota.
+   Edge Function relies on the Gemini provider's quota and rate limits.
    Deploy the Edge Function and configure its Gemini secret using the
    instructions in `../functions/generate-ai/README.md`.
 6. **Channel creation RLS alignment** —
@@ -67,3 +67,28 @@ Current feature groups, in application order:
     `20261018220000_fix_admin_give_resource_currency_type.sql` casts the
     currency value to the actual `wallet_transactions.currency` column type
     before recording developer grants, supporting both text and enum schemas.
+17. **Class messaging, Subject Rate, and membership policies** —
+    `20261020000000_fix_channel_message_realtime_and_rls.sql` fixes channel
+    message realtime and access policies. The migrations
+    `20261026000000_classes_members_subject_scores_schema.sql`,
+    `20261026010000_strict_security_rls_subjects_scores.sql`,
+    `20261026020000_student_weighted_averages_rpc.sql`,
+    `20261026040000_subject_rate_system.sql`, and
+    `20261026050000_subject_rate_rpc_policy.sql` add the class/subject-score
+    schema, access policies, weighted-average RPCs, and Subject Rate system.
+18. **Subject Rate normalization and classroom membership RLS** —
+    `20261029161000_normalize_subject_rate_index.sql` normalizes classroom
+    subject-rate data, while `20261029170000_fix_classroom_members_rls_recursion.sql`
+    and `20261029172000_fix_class_members_rls_recursion.sql` prevent recursive
+    membership policies.
+19. **Default Subject Rate score** —
+    `20261104173000_subject_rate_default_score.sql` sets new subject-rate rows
+    to a neutral score of 5 without changing existing scores.
+20. **Admin-managed app visuals** —
+    `20261105160000_app_branding_assets.sql` adds the public login/overview
+    image settings and a public Storage bucket whose uploads are restricted to
+    developer accounts. Apply this migration before using the Admin Terminal
+    visual-upload button.
+21. **App visual crop settings** —
+    `20261105170000_app_branding_image_crop.sql` stores the zoom and focal
+    position selected in the Admin Terminal image preview editor.

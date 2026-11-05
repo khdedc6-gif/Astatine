@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/core/ui/discord_ui.dart';
+import 'package:astatine_dashboard/core/ui/loading_skeleton.dart';
 
 import 'classroom_detail.dart';
 import 'classroom_service.dart';
@@ -43,27 +44,43 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _loadDashboard() async {
+  Future<void> _loadDashboard({bool forceRefresh = false}) async {
+    final cachedRole = ClassroomService.getCachedUserRole();
+    final cachedClassrooms = ClassroomService.getCachedMyClassrooms();
+    final hasCachedData = cachedRole != null && cachedClassrooms != null;
     setState(() {
-      _isLoading = true;
+      _isLoading = !hasCachedData;
       _loadError = null;
+      if (hasCachedData) {
+        _userRole = cachedRole;
+        _classrooms = cachedClassrooms;
+      }
     });
 
     try {
-      final role = await ClassroomService.getUserRole();
-      final classrooms = await ClassroomService.getMyClassrooms();
+      final results = await Future.wait([
+        ClassroomService.getUserRole(forceRefresh: forceRefresh),
+        ClassroomService.getMyClassrooms(forceRefresh: forceRefresh),
+      ]);
       if (!mounted) return;
       setState(() {
-        _userRole = role?.toLowerCase();
-        _classrooms = classrooms;
+        _userRole = (results[0] as String?)?.toLowerCase();
+        _classrooms = results[1] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
     } catch (error) {
       if (!mounted) return;
-      setState(() {
-        _loadError = error.toString();
-        _isLoading = false;
-      });
+      if (hasCachedData) {
+        setState(() => _isLoading = false);
+        ToastService.showWarning(
+          'Hiển thị dữ liệu đã lưu tạm thời. Không thể làm mới: $error',
+        );
+      } else {
+        setState(() {
+          _loadError = error.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -120,7 +137,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
     setState(() => _isWorking = true);
     try {
       final code = await ClassroomService.createClassroom(className);
-      await _loadDashboard();
+      await _loadDashboard(forceRefresh: true);
       if (!mounted) return;
       await _showClassCodeDialog(code);
     } catch (error) {
@@ -147,7 +164,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: _colors.card,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: SelectableText(
                 code,
@@ -239,7 +256,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
     setState(() => _isWorking = true);
     try {
       await ClassroomService.joinClassroom(code);
-      await _loadDashboard();
+      await _loadDashboard(forceRefresh: true);
       if (mounted) {
         ToastService.showSuccess('You joined the class.');
       }
@@ -313,7 +330,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return const ClassroomListSkeleton();
     if (_loadError != null) {
       return Center(
         child: Padding(
@@ -326,7 +343,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
               Text(_loadError!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: _loadDashboard,
+                onPressed: () => _loadDashboard(forceRefresh: true),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Try again'),
               ),
@@ -338,7 +355,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
 
     if (_classrooms.isEmpty) {
       return RefreshIndicator(
-        onRefresh: _loadDashboard,
+        onRefresh: () => _loadDashboard(forceRefresh: true),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
@@ -364,7 +381,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadDashboard,
+      onRefresh: () => _loadDashboard(forceRefresh: true),
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 100),
         itemCount: _classrooms.length,
@@ -382,7 +399,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
             color: _colors.panel,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               side: BorderSide(color: _colors.border),
             ),
             child: ListTile(
@@ -419,7 +436,7 @@ class _ClassroomDashboardScreenState extends State<ClassroomDashboardScreen> {
                           ),
                         ),
                       );
-                      if (mounted) _loadDashboard();
+                      if (mounted) _loadDashboard(forceRefresh: true);
                     },
             ),
           );

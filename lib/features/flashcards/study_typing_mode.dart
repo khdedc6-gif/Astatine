@@ -1,12 +1,18 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'flashcard_models.dart';
 import 'flashcard_service.dart';
 
 class StudyTypingModeScreen extends StatefulWidget {
-  const StudyTypingModeScreen({super.key, required this.deck, required this.shuffle});
+  const StudyTypingModeScreen({
+    super.key,
+    required this.deck,
+    required this.shuffle,
+  });
   final FlashcardDeck deck;
   final bool shuffle;
 
@@ -39,7 +45,8 @@ class _StudyTypingModeScreenState extends State<StudyTypingModeScreen> {
     if (_checked) return;
     final user = _ctrl.text.trim().toLowerCase();
     final ans = _cards[_index].back.trim().toLowerCase();
-    final ok = user == ans || ans.contains(user) && user.length > (ans.length * 0.7);
+    final ok =
+        user == ans || ans.contains(user) && user.length > (ans.length * 0.7);
 
     setState(() {
       _checked = true;
@@ -68,10 +75,15 @@ class _StudyTypingModeScreenState extends State<StudyTypingModeScreen> {
         barrierDismissible: false,
         builder: (_) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E2E),
-          title: Text('Kết quả Nhập văn bản: $_score / ${_cards.length}', style: GoogleFonts.outfit(color: Colors.white)),
+          title: Text(
+            'Kết quả Nhập văn bản: $_score / ${_cards.length}',
+            style: GoogleFonts.outfit(color: Colors.white),
+          ),
           actions: [
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF89B4FA)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF89B4FA),
+              ),
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
@@ -90,7 +102,9 @@ class _StudyTypingModeScreenState extends State<StudyTypingModeScreen> {
       return Scaffold(
         backgroundColor: const Color(0xFF11111B),
         appBar: AppBar(title: const Text('Nhập đáp án')),
-        body: const Center(child: Text('Không có thẻ.', style: TextStyle(color: Colors.white))),
+        body: const Center(
+          child: Text('Không có thẻ.', style: TextStyle(color: Colors.white)),
+        ),
       );
     }
 
@@ -100,13 +114,19 @@ class _StudyTypingModeScreenState extends State<StudyTypingModeScreen> {
       backgroundColor: const Color(0xFF11111B),
       appBar: AppBar(
         backgroundColor: const Color(0xFF181825),
-        title: Text('Nhập đáp án: ${widget.deck.title}', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16)),
+        title: Text(
+          'Nhập đáp án: ${widget.deck.title}',
+          style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            LinearProgressIndicator(value: (_index + 1) / _cards.length, color: const Color(0xFF89B4FA)),
+            LinearProgressIndicator(
+              value: (_index + 1) / _cards.length,
+              color: const Color(0xFF89B4FA),
+            ),
             const Gap(32),
             Container(
               width: double.infinity,
@@ -118,9 +138,24 @@ class _StudyTypingModeScreenState extends State<StudyTypingModeScreen> {
               ),
               child: Column(
                 children: [
-                  Text('CÂU HỎI', style: GoogleFonts.outfit(color: const Color(0xFF89B4FA), fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(
+                    'CÂU HỎI',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF89B4FA),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const Gap(12),
-                  Text(card.front, textAlign: TextAlign.center, style: GoogleFonts.outfit(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(
+                    card.front,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -134,7 +169,9 @@ class _StudyTypingModeScreenState extends State<StudyTypingModeScreen> {
                 hintStyle: GoogleFonts.outfit(color: Colors.white38),
                 filled: true,
                 fillColor: const Color(0xFF181825),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onSubmitted: (_) => _checked ? _next() : _check(),
             ),
@@ -144,19 +181,33 @@ class _StudyTypingModeScreenState extends State<StudyTypingModeScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _correct ? const Color(0xFFA6E3A1).withValues(alpha: 0.2) : const Color(0xFFF38BA8).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: _correct
+                      ? const Color(0xFFA6E3A1).withValues(alpha: 0.2)
+                      : const Color(0xFFF38BA8).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   _correct ? 'Chính xác!' : 'Sai. Đáp án: "${card.back}"',
-                  style: GoogleFonts.outfit(color: _correct ? const Color(0xFFA6E3A1) : const Color(0xFFF38BA8), fontWeight: FontWeight.bold),
+                  style: GoogleFonts.outfit(
+                    color: _correct
+                        ? const Color(0xFFA6E3A1)
+                        : const Color(0xFFF38BA8),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             const Spacer(),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF89B4FA), foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 48)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF89B4FA),
+                foregroundColor: Colors.black,
+                minimumSize: const Size(double.infinity, 48),
+              ),
               onPressed: _checked ? _next : _check,
-              child: Text(_checked ? 'Tiếp theo' : 'Kiểm tra', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              child: Text(
+                _checked ? 'Tiếp theo' : 'Kiểm tra',
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),

@@ -90,7 +90,7 @@ class _TopBarClassroomSwitcherState extends State<TopBarClassroomSwitcher> {
                   colors.accent.withValues(alpha: 0.07),
                 ],
               ),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: colors.accent.withValues(alpha: 0.35)),
             ),
             alignment: Alignment.center,
@@ -416,7 +416,7 @@ class _ChatAreaWorkspaceState extends State<ChatAreaWorkspace> {
                 height: 34,
                 decoration: BoxDecoration(
                   color: colors.accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: colors.accent.withValues(alpha: 0.24),
                   ),
@@ -766,11 +766,11 @@ class _ChatAreaWorkspaceState extends State<ChatAreaWorkspace> {
                     vertical: 10,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: colors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(
                       color: colors.accent.withValues(alpha: 0.72),
                     ),
@@ -800,7 +800,7 @@ class _ChatAreaWorkspaceState extends State<ChatAreaWorkspace> {
                   foregroundColor: colors.onAccent,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: widget.isSending

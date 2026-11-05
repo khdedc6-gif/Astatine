@@ -578,7 +578,9 @@ class ReactionEngine {
         _metalWater(contents, temp, isVietnamese) ??
         _oxideWater(contents, temp, isVietnamese) ??
         _oxideAcid(contents, temp, isVietnamese) ??
+        _amphotericOxideBase(contents, temp, isVietnamese) ??
         _acidicOxideBase(contents, temp, isVietnamese) ??
+        _oxideCombination(contents, temp, isVietnamese) ??
         _acidGas(contents, temp, isVietnamese) ??
         _neutralization(contents, temp, isVietnamese) ??
         _singleDisplacement(contents, temp, isVietnamese) ??
@@ -760,9 +762,7 @@ class ReactionEngine {
       final cation = oxide.cation;
       if (cation == null) continue;
       for (final acid in contents.where(
-        (item) =>
-            item.category == ChemicalCategory.acid &&
-            const {'HCl', 'H2SO4'}.contains(item.formula),
+        (item) => item.category == ChemicalCategory.acid,
       )) {
         final anion = acid.anion;
         if (anion == null) continue;
@@ -779,7 +779,13 @@ class ReactionEngine {
         return _result(
           type: ReactionType.doubleDisplacement,
           equation: _render(equation),
-          phenomenon: vi ? 'Oxit bazơ phản ứng với axit tạo muối và nước.' : 'The basic oxide reacts with the acid to form a salt and water.',
+          phenomenon: vi
+              ? oxide.oxideKind == OxideKind.amphoteric
+                    ? 'Oxit lưỡng tính phản ứng với axit tạo muối và nước.'
+                    : 'Oxit bazơ phản ứng với axit tạo muối và nước.'
+              : oxide.oxideKind == OxideKind.amphoteric
+              ? 'The amphoteric oxide reacts with the acid to form a salt and water.'
+              : 'The basic oxide reacts with the acid to form a salt and water.',
           color: color,
           temperature: temp,
           heat: 14,
@@ -792,6 +798,46 @@ class ReactionEngine {
                   ),
                 ]
               : const [],
+        );
+      }
+    }
+    return null;
+  }
+
+  ReactionResult? _amphotericOxideBase(
+    List<Chemical> contents,
+    double temp,
+    bool vi,
+  ) {
+    if (temp < 300) return null;
+    for (final oxide in contents.where(
+      (item) =>
+          item.category == ChemicalCategory.oxide &&
+          item.oxideKind == OxideKind.amphoteric &&
+          item.formula == 'Al2O3',
+    )) {
+      for (final base in contents.where(
+        (item) =>
+            item.category == ChemicalCategory.base &&
+            const {'NaOH', 'KOH'}.contains(item.formula),
+      )) {
+        final cation = base.cation;
+        if (cation == null) continue;
+        final aluminate = '${cation.symbol}AlO2';
+        final equation = _balance(
+          [_Term(oxide.formula), _Term(base.formula)],
+          [_Term(aluminate), const _Term('H2O')],
+        );
+        if (equation == null) continue;
+        return _result(
+          type: ReactionType.doubleDisplacement,
+          equation: _render(equation),
+          phenomenon: vi
+              ? 'Nhôm oxit phản ứng với kiềm nóng chảy, tạo muối aluminat và nước.'
+              : 'Aluminium oxide reacts with molten alkali to form an aluminate salt and water.',
+          color: const Color(0xFF52A6CF),
+          temperature: temp,
+          heat: 16,
         );
       }
     }
@@ -846,6 +892,66 @@ class ReactionEngine {
                     kind: ParticleKind.precipitate,
                     color: color,
                     count: 26,
+                  ),
+                ]
+              : const [],
+        );
+      }
+    }
+    return null;
+  }
+
+  ReactionResult? _oxideCombination(
+    List<Chemical> contents,
+    double temp,
+    bool vi,
+  ) {
+    for (final acidicOxide in contents.where(
+      (item) =>
+          item.category == ChemicalCategory.oxide &&
+          item.oxideKind == OxideKind.acidic,
+    )) {
+      final acid = ChemicalCatalog.reagents
+          .where(
+            (item) =>
+                item.category == ChemicalCategory.acid &&
+                item.formula == acidicOxide.waterProductFormula,
+          )
+          .firstOrNull;
+      final anion = acid?.anion;
+      if (anion == null) continue;
+      for (final basicOxide in contents.where(
+        (item) =>
+            item.category == ChemicalCategory.oxide &&
+            item.oxideKind == OxideKind.basic,
+      )) {
+        final cation = basicOxide.cation;
+        if (cation == null) continue;
+        final salt = _ionicFormula(cation, anion);
+        final insoluble = !_isSoluble(cation, anion);
+        final equation = _balance(
+          [_Term(acidicOxide.formula), _Term(basicOxide.formula)],
+          [_Term(salt, precipitate: insoluble)],
+        );
+        if (equation == null) continue;
+        final color = insoluble
+            ? _precipitateColor(cation, anion)
+            : const Color(0xFF50A8D4);
+        return _result(
+          type: ReactionType.doubleDisplacement,
+          equation: _render(equation),
+          phenomenon: vi
+              ? 'Oxit axit phản ứng với oxit bazơ tạo thành muối.'
+              : 'The acidic oxide reacts with the basic oxide to form a salt.',
+          color: color,
+          temperature: temp,
+          heat: 14,
+          particles: insoluble
+              ? [
+                  ReactionParticle(
+                    kind: ParticleKind.precipitate,
+                    color: color,
+                    count: 24,
                   ),
                 ]
               : const [],

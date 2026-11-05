@@ -7,6 +7,7 @@ import 'package:astatine_dashboard/core/localization/app_localizations.dart';
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
 import 'package:astatine_dashboard/core/ui/hover_ripple.dart';
+import 'package:astatine_dashboard/core/ui/loading_skeleton.dart';
 import 'package:astatine_dashboard/core/ui/ui_motion.dart';
 
 import 'assignment_data_service.dart';
@@ -229,7 +230,7 @@ class _AssignmentsDailyQuestsScreenState
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: _gold.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _gold.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -268,7 +269,7 @@ class _AssignmentsDailyQuestsScreenState
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: _success.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _success.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -339,7 +340,7 @@ class _AssignmentsDailyQuestsScreenState
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: _palette.card,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border.withValues(alpha: 0.75)),
       ),
       child: Column(
@@ -372,7 +373,7 @@ class _AssignmentsDailyQuestsScreenState
           ),
           const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: (_activityPoints / 100).clamp(0.0, 1.0),
               minHeight: 4,
@@ -490,7 +491,7 @@ class _AssignmentsDailyQuestsScreenState
             color: selected
                 ? _palette.accent.withValues(alpha: 0.15)
                 : _palette.input,
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             '$count',
@@ -506,7 +507,9 @@ class _AssignmentsDailyQuestsScreenState
 
   Widget _buildAssignmentList(List<AssignmentRecord> assignments) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return AssignmentCardsSkeleton(
+        label: _text('Đang tải bài tập', 'Loading assignments'),
+      );
     }
     if (_loadError != null) {
       return _emptyState(
@@ -618,7 +621,7 @@ class _AssignmentsDailyQuestsScreenState
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: _palette.background.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border.withValues(alpha: 0.7)),
       ),
       child: Column(
@@ -638,7 +641,7 @@ class _AssignmentsDailyQuestsScreenState
                       ),
                       decoration: BoxDecoration(
                         color: subjectColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: subjectColor.withValues(alpha: 0.3),
                         ),
@@ -727,7 +730,7 @@ class _AssignmentsDailyQuestsScreenState
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
                       color: _palette.accent.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       canViewAnalytics
@@ -749,13 +752,13 @@ class _AssignmentsDailyQuestsScreenState
       scale: 1.015,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
           onTap: onCardTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           hoverColor: _palette.accent.withValues(alpha: 0.035),
           child: HoverRipple(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             color: _palette.accent,
             child: card,
           ),
@@ -805,7 +808,7 @@ class _AssignmentsDailyQuestsScreenState
         padding: padding ?? const EdgeInsets.all(13),
         decoration: BoxDecoration(
           color: _palette.card,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: _palette.border.withValues(alpha: 0.8)),
         ),
         child: child,

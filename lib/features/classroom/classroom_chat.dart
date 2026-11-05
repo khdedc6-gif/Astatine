@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/core/ui/discord_ui.dart';
 import 'package:astatine_dashboard/core/ui/glide_select.dart';
+import 'package:astatine_dashboard/core/ui/loading_skeleton.dart';
 
 import 'chat_screen.dart';
 import 'classroom_service.dart';
@@ -250,7 +251,7 @@ class _ClassroomChatScreenState extends State<ClassroomChatScreen> {
             labelStyle: TextStyle(color: _colors.hint),
             filled: true,
             fillColor: _card,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         actions: [
@@ -344,7 +345,7 @@ class _ClassroomChatScreenState extends State<ClassroomChatScreen> {
             labelStyle: TextStyle(color: _colors.hint),
             filled: true,
             fillColor: _card,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         actions: [
@@ -408,7 +409,7 @@ class _ClassroomChatScreenState extends State<ClassroomChatScreen> {
                     filled: true,
                     fillColor: _card,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   validator: (value) => value == null || value.trim().isEmpty
@@ -470,9 +471,7 @@ class _ClassroomChatScreenState extends State<ClassroomChatScreen> {
         draft.$3,
       );
       await _loadClassroomContent(_selectedClassroomId!);
-      ToastService.showSuccess(
-        _vi ? 'Đã tạo kênh.' : 'Channel created.',
-      );
+      ToastService.showSuccess(_vi ? 'Đã tạo kênh.' : 'Channel created.');
     } catch (error) {
       if (!mounted) return;
       ToastService.showError(error.toString());
@@ -489,7 +488,7 @@ class _ClassroomChatScreenState extends State<ClassroomChatScreen> {
         if (_isLoading && _memberships.isEmpty) {
           return Scaffold(
             backgroundColor: _background,
-            body: Center(child: CircularProgressIndicator()),
+            body: const SafeArea(child: ClassroomChatSkeleton()),
           );
         }
 
@@ -767,7 +766,9 @@ class _ClassroomChatScreenState extends State<ClassroomChatScreen> {
             ),
           ),
           Expanded(
-            child: _channels.isEmpty
+            child: _isLoading && _channels.isEmpty
+                ? const ClassroomChannelsSkeleton()
+                : _channels.isEmpty
                 ? Center(
                     child: Text(
                       _vi ? 'Chưa có kênh nào.' : 'No channels yet.',
@@ -825,6 +826,9 @@ class _ClassroomChatScreenState extends State<ClassroomChatScreen> {
   Widget _buildChatArea({required bool compact}) {
     final channel = _selectedChannel;
     if (channel == null) {
+      if (_isLoading) {
+        return const ChatMessagesSkeleton();
+      }
       return Center(
         child: Text(
           _vi ? 'Chọn một kênh để bắt đầu chat.' : 'Select a channel to chat.',

@@ -5,6 +5,8 @@ import 'package:astatine_dashboard/core/localization/app_localizations.dart';
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
 import 'package:astatine_dashboard/core/ui/glide_select.dart';
 
+import '../ai/ai_service.dart';
+import '../ai/gemini_assistant.dart';
 import 'assignment_data_service.dart';
 
 class CreateAssignmentWizard extends StatefulWidget {
@@ -31,10 +33,12 @@ class _QuizQuestionDraft {
     List<String>? options,
     this.correctOption = 1,
     double points = 10,
+    String explanation = '',
   }) : textController = TextEditingController(text: text),
        pointsController = TextEditingController(
          text: points.toStringAsFixed(points == points.roundToDouble() ? 0 : 1),
        ),
+       explanationController = TextEditingController(text: explanation),
        optionControllers = [
          for (final option
              in options ?? ['1, 1, 1', '2, 1, 2', '1, 2, 1', '2, 2, 1'])
@@ -43,6 +47,7 @@ class _QuizQuestionDraft {
 
   final TextEditingController textController;
   final TextEditingController pointsController;
+  final TextEditingController explanationController;
   final List<TextEditingController> optionControllers;
   int correctOption;
   double get points => double.tryParse(pointsController.text.trim()) ?? 0;
@@ -52,11 +57,13 @@ class _QuizQuestionDraft {
     options: optionControllers.map((controller) => controller.text).toList(),
     correctOption: correctOption,
     points: points,
+    explanation: explanationController.text,
   );
 
   void dispose() {
     textController.dispose();
     pointsController.dispose();
+    explanationController.dispose();
     for (final controller in optionControllers) {
       controller.dispose();
     }
@@ -68,6 +75,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
   static const _green = Color(0xFF10B981);
 
   final _titleController = TextEditingController(text: 'Balanced Equations');
+  final _topicController = TextEditingController(text: 'Balanced Equations');
   final _searchController = TextEditingController();
   final _questionsScrollController = ScrollController();
   final _studentsScrollController = ScrollController();
@@ -82,6 +90,8 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
   bool _wholeClass = true;
   bool _loadingStudents = false;
   bool _publishing = false;
+  bool _generatingAi = false;
+  int _selectedQuestionIndex = 0;
   String? _studentLoadError;
   List<AssignmentStudent> _students = const [];
   DateTime _dueAt = DateTime.now().add(const Duration(days: 5));
@@ -130,6 +140,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
   @override
   void dispose() {
     _titleController.dispose();
+    _topicController.dispose();
     _searchController.dispose();
     _questionsScrollController.dispose();
     _studentsScrollController.dispose();
@@ -173,7 +184,6 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(compact),
             _buildStepper(compact),
             Expanded(
               child: AnimatedSwitcher(
@@ -181,9 +191,9 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                 child: KeyedSubtree(
                   key: ValueKey(_currentStep),
                   child: _currentStep == 1
-                      ? _buildQuestionsStep()
+                      ? _buildAssignmentDetailsStep()
                       : _currentStep == 2
-                      ? _buildAssigneesStep()
+                      ? _buildQuestionWorkspace()
                       : _buildRewardStep(),
                 ),
               ),
@@ -195,6 +205,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildHeader(bool compact) => Container(
     padding: EdgeInsets.symmetric(horizontal: compact ? 16 : 28, vertical: 12),
     decoration: BoxDecoration(
@@ -270,11 +281,291 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
   TextStyle _metaText({Color? color}) =>
       TextStyle(color: color ?? _palette.canvasMutedText, fontSize: 10);
 
+  Widget _buildAssignmentDetailsStep() {
+    final dueLabel = MaterialLocalizations.of(context).formatMediumDate(_dueAt);
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 920),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                _text('THÔNG TIN GIAO BÀI', 'ASSIGNMENT DETAILS'),
+                style: TextStyle(
+                  color: _palette.canvasMutedText,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _wizardPanel(
+                accent: _palette.accent,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: _text('Tên bài tập', 'Assignment title'),
+                        hintText: _text(
+                          'Ví dụ: Phản ứng oxi hóa - khử',
+                          'Example: Redox reactions',
+                        ),
+                        prefixIcon: const Icon(Icons.title_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _topicController,
+                      decoration: InputDecoration(
+                        labelText: _text('Chủ đề', 'Topic'),
+                        hintText: _text(
+                          'Ví dụ: Cân bằng phương trình',
+                          'Example: Balancing equations',
+                        ),
+                        prefixIcon: const Icon(Icons.sell_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final stacked = constraints.maxWidth < 560;
+                        final subject = GlideSelect<String>.dropdown(
+                          value: _subject,
+                          decoration: InputDecoration(
+                            labelText: _text('Môn học', 'Subject'),
+                          ),
+                          options: [
+                            GlideSelectOption(
+                              value: 'Chemistry',
+                              label: _text('Hóa học', 'Chemistry'),
+                            ),
+                            GlideSelectOption(
+                              value: 'Physics',
+                              label: _text('Vật lý', 'Physics'),
+                            ),
+                            GlideSelectOption(
+                              value: 'Math',
+                              label: _text('Toán học', 'Math'),
+                            ),
+                            GlideSelectOption(
+                              value: 'Biology',
+                              label: _text('Sinh học', 'Biology'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _subject = value);
+                            }
+                          },
+                        );
+                        final classroom = GlideSelect<String>.dropdown(
+                          value: _selectedClassId,
+                          decoration: InputDecoration(
+                            labelText: _text(
+                              'Lớp nhận bài',
+                              'Assignment class',
+                            ),
+                          ),
+                          options: [
+                            for (final classroom in widget.classrooms)
+                              GlideSelectOption(
+                                value: classroom.id,
+                                label: classroom.name,
+                              ),
+                          ],
+                          onChanged: (classId) {
+                            if (classId == null ||
+                                classId == _selectedClassId) {
+                              return;
+                            }
+                            setState(() => _selectedClassId = classId);
+                            _loadStudents();
+                          },
+                        );
+                        return stacked
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  subject,
+                                  const SizedBox(height: 10),
+                                  classroom,
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  Expanded(child: subject),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: classroom),
+                                ],
+                              );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _wizardPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      _text('Người nhận', 'Recipients'),
+                      style: _sectionTitle(),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<bool>(
+                      segments: [
+                        ButtonSegment(
+                          value: true,
+                          label: Text(_text('Cả lớp', 'Whole class')),
+                          icon: const Icon(Icons.groups_rounded),
+                        ),
+                        ButtonSegment(
+                          value: false,
+                          label: Text(
+                            _text('Chọn học sinh', 'Selected students'),
+                          ),
+                          icon: const Icon(Icons.person_search_rounded),
+                        ),
+                      ],
+                      selected: {_wholeClass},
+                      onSelectionChanged: (selection) {
+                        final wholeClass = selection.first;
+                        setState(() {
+                          _wholeClass = wholeClass;
+                          if (wholeClass) _selectedStudentIds.clear();
+                        });
+                        if (!wholeClass && _students.isEmpty) _loadStudents();
+                      },
+                    ),
+                    if (!_wholeClass) ...[
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          hintText: _text(
+                            'Tìm học sinh...',
+                            'Search students...',
+                          ),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (_loadingStudents)
+                        const LinearProgressIndicator()
+                      else
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 180),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _filteredStudents.length,
+                            itemBuilder: (context, index) {
+                              final student = _filteredStudents[index];
+                              final selected = _selectedStudentIds.contains(
+                                student.id,
+                              );
+                              return Material(
+                                color: Colors.transparent,
+                                child: CheckboxListTile(
+                                  dense: true,
+                                  value: selected,
+                                  onChanged: (value) => setState(() {
+                                    if (value == true) {
+                                      _selectedStudentIds.add(student.id);
+                                    } else {
+                                      _selectedStudentIds.remove(student.id);
+                                    }
+                                  }),
+                                  title: Text(student.name),
+                                  subtitle: Text(student.email),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: _pickDueDate,
+                          icon: const Icon(Icons.event_outlined, size: 17),
+                          label: Text('$dueLabel · 18:00'),
+                        ),
+                        SizedBox(
+                          width: 150,
+                          child: TextField(
+                            controller: _passingScoreController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: _text('Điểm đạt', 'Pass score'),
+                              suffixText: '/ 10',
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _wizardPanel(
+                child: Row(
+                  children: [
+                    Icon(Icons.toll_rounded, color: _gold),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _text('Thưởng cho mỗi học sinh', 'Reward per student'),
+                        style: _sectionTitle(),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 180,
+                      child: Slider(
+                        min: 0,
+                        max: 500,
+                        divisions: 50,
+                        value: _coinReward.toDouble(),
+                        label: '$_coinReward Coin',
+                        onChanged: (value) =>
+                            setState(() => _coinReward = value.round()),
+                      ),
+                    ),
+                    Text(
+                      '$_coinReward',
+                      style: const TextStyle(
+                        color: _gold,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStepper(bool compact) {
     final labels = [
-      _text('Câu hỏi & đáp án', 'Questions & answers'),
-      _text('Người nhận', 'Assignees'),
-      _text('Thưởng Coin', 'Coin reward'),
+      _text('Thông tin giao bài', 'Assignment details'),
+      _text('Soạn câu hỏi', 'Write questions'),
+      _text('Kiểm tra & tạo', 'Review & create'),
     ];
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -308,7 +599,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
         color: active
             ? _palette.accent.withValues(alpha: 0.1)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: active
               ? _palette.accent.withValues(alpha: 0.5)
@@ -369,6 +660,275 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
     );
   }
 
+  Widget _buildQuestionWorkspace() {
+    final compact = MediaQuery.sizeOf(context).width < 900;
+    final selectedIndex = _selectedQuestionIndex
+        .clamp(0, _questions.length - 1)
+        .toInt();
+    final navigator = Container(
+      width: compact ? double.infinity : 184,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _palette.card,
+        border: Border.all(color: _palette.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _text('CÂU HỎI', 'QUESTIONS'),
+                  style: TextStyle(
+                    color: _palette.canvasMutedText,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: _text('Thêm câu hỏi', 'Add question'),
+                onPressed: _addQuestion,
+                icon: const Icon(Icons.add_rounded, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (compact)
+            SizedBox(
+              height: 74,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _questions.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) => _questionNavigatorTile(index),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.separated(
+                itemCount: _questions.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) => _questionNavigatorTile(index),
+              ),
+            ),
+          if (!compact) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _addQuestion,
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: Text(_text('Thêm câu hỏi', 'Add question')),
+            ),
+          ],
+        ],
+      ),
+    );
+    final editor = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _text('SOẠN CÂU HỎI', 'WRITE QUESTIONS'),
+                style: TextStyle(
+                  color: _palette.canvasMutedText,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+            Text(
+              '${selectedIndex + 1} / ${_questions.length}',
+              style: _metaText(color: _palette.accent),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(right: 2, bottom: 12),
+            child: _questionCard(selectedIndex),
+          ),
+        ),
+      ],
+    );
+    final assistant = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _wizardPanel(
+          accent: _palette.accent,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.upload_file_rounded, color: _palette.accent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _text('Đề tham khảo', 'Reference material'),
+                      style: _sectionTitle(),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => _showNotice(
+                  _text(
+                    'Upload sẽ được kết nối ở bước sau.',
+                    'Upload will be connected in a later step.',
+                  ),
+                ),
+                icon: const Icon(Icons.cloud_upload_outlined, size: 17),
+                label: Text(_text('Tải đề lên', 'Upload prompt')),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: _palette.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _palette.border),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        color: _palette.accent,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Gemini',
+                          style: TextStyle(
+                            color: _palette.canvasText,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _text('Trợ lý ra đề', 'Draft assistant'),
+                        style: _metaText(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        _text(
+                          'Ra đề nhanh, xem lại đề hoặc kiểm tra độ khó.',
+                          'Draft quickly, review the quiz, or check difficulty.',
+                        ),
+                        textAlign: TextAlign.center,
+                        style: _metaText(),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                  child: GeminiAssistantBubble(
+                    isVietnamese: _vi,
+                    languageCode: _languageCode,
+                    interfaceName: _text('Soạn bài tập', 'Assignment editor'),
+                    maxPanelHeight: 300,
+                    onAssignmentDraftRequest: _generateDraftFromChat,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: compact
+          ? Column(
+              children: [
+                navigator,
+                const SizedBox(height: 10),
+                Expanded(child: editor),
+                const SizedBox(height: 10),
+                SizedBox(height: 230, child: assistant),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                navigator,
+                const SizedBox(width: 12),
+                Expanded(flex: 6, child: editor),
+                const SizedBox(width: 12),
+                Expanded(flex: 4, child: assistant),
+              ],
+            ),
+    );
+  }
+
+  Widget _questionNavigatorTile(int index) {
+    final selected = index == _selectedQuestionIndex;
+    final question = _questions[index];
+    final hasText = question.textController.text.trim().isNotEmpty;
+    return InkWell(
+      onTap: () => setState(() => _selectedQuestionIndex = index),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 76,
+        height: 68,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: selected
+              ? _palette.accent.withValues(alpha: 0.13)
+              : _palette.input,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? _palette.accent : _palette.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${index + 1}',
+              style: TextStyle(
+                color: selected ? _palette.accent : _palette.canvasText,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Icon(
+              hasText ? Icons.check_circle_outline : Icons.edit_outlined,
+              size: 12,
+              color: hasText ? _green : _palette.canvasMutedText,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Legacy single-column layout retained for compatibility with saved drafts.
+  // ignore: unused_element
   Widget _buildQuestionsStep() => Center(
     child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 920),
@@ -401,50 +961,47 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         spacing: 10,
                         children: [
+                          FilledButton.icon(
+                            onPressed: _generatingAi ? null : _generateWithAi,
+                            icon: _generatingAi
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.auto_awesome, size: 16),
+                            label: Text(
+                              _generatingAi
+                                  ? _text('Đang tạo...', 'Generating...')
+                                  : _text('Tạo bằng AI', 'Generate with AI'),
+                            ),
+                          ),
                           DecoratedBox(
                             decoration: BoxDecoration(
                               color: _palette.input,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: _palette.border),
                             ),
-                            child: DropdownButton<String>(
+                            child: GlideSelect<String>.dropdown(
                               value: _subject,
-                              borderRadius: BorderRadius.circular(16),
-                              dropdownColor: _palette.card,
-                              iconEnabledColor: _palette.accent,
-                              style: TextStyle(color: _palette.primaryText),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              underline: const SizedBox.shrink(),
-                              items: [
-                                DropdownMenuItem(
+                              options: [
+                                GlideSelectOption(
                                   value: 'Chemistry',
-                                  child: GlideSelect(
-                                    selected: _subject == 'Chemistry',
-                                    child: Text(_text('Hóa học', 'Chemistry')),
-                                  ),
+                                  label: _text('Hóa học', 'Chemistry'),
                                 ),
-                                DropdownMenuItem(
+                                GlideSelectOption(
                                   value: 'Physics',
-                                  child: GlideSelect(
-                                    selected: _subject == 'Physics',
-                                    child: Text(_text('Vật lý', 'Physics')),
-                                  ),
+                                  label: _text('Vật lý', 'Physics'),
                                 ),
-                                DropdownMenuItem(
+                                GlideSelectOption(
                                   value: 'Math',
-                                  child: GlideSelect(
-                                    selected: _subject == 'Math',
-                                    child: Text(_text('Toán học', 'Math')),
-                                  ),
+                                  label: _text('Toán học', 'Math'),
                                 ),
-                                DropdownMenuItem(
+                                GlideSelectOption(
                                   value: 'Biology',
-                                  child: GlideSelect(
-                                    selected: _subject == 'Biology',
-                                    child: Text(_text('Sinh học', 'Biology')),
-                                  ),
+                                  label: _text('Sinh học', 'Biology'),
                                 ),
                               ],
                               onChanged: (value) {
@@ -525,7 +1082,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _palette.card,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border),
       ),
       child: Column(
@@ -561,16 +1118,12 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
           ),
           Row(
             children: [
-              DropdownButton<String>(
+              GlideSelect<String>.dropdown(
                 value: 'multiple_choice',
-                borderRadius: BorderRadius.circular(16),
-                dropdownColor: _palette.card,
-                style: TextStyle(color: _palette.primaryText),
-                underline: const SizedBox.shrink(),
-                items: [
-                  DropdownMenuItem(
+                options: [
+                  GlideSelectOption(
                     value: 'multiple_choice',
-                    child: Text(_text('Trắc nghiệm', 'Multiple choice')),
+                    label: _text('Trắc nghiệm', 'Multiple choice'),
                   ),
                 ],
                 onChanged: (_) {},
@@ -618,6 +1171,21 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
             ),
           ),
           const SizedBox(height: 10),
+          TextField(
+            controller: question.explanationController,
+            minLines: 1,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: _text('Giải thích đáp án', 'Answer explanation'),
+              hintText: _text(
+                'Giải thích ngắn gọn vì sao đáp án đúng.',
+                'Briefly explain why the answer is correct.',
+              ),
+              filled: true,
+              fillColor: _palette.input,
+            ),
+          ),
+          const SizedBox(height: 10),
           RadioGroup<int>(
             groupValue: question.correctOption,
             onChanged: (value) {
@@ -649,7 +1217,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
       child: Container(
         decoration: BoxDecoration(
           color: correct ? _green.withValues(alpha: 0.08) : _palette.input,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: correct ? _green : _palette.border,
             width: correct ? 1.5 : 1,
@@ -714,6 +1282,8 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
     );
   }
 
+  // Legacy assignee-only layout retained for compatibility with saved drafts.
+  // ignore: unused_element
   Widget _buildAssigneesStep() => Center(
     child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 820),
@@ -724,21 +1294,14 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
           children: [
             const SizedBox(height: 4),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedClassId,
-              borderRadius: BorderRadius.circular(16),
+            GlideSelect<String>.dropdown(
+              value: _selectedClassId,
               decoration: InputDecoration(
                 labelText: _text('Lớp nhận bài', 'Assignment class'),
               ),
-              items: [
+              options: [
                 for (final classroom in widget.classrooms)
-                  DropdownMenuItem(
-                    value: classroom.id,
-                    child: GlideSelect(
-                      selected: _selectedClassId == classroom.id,
-                      child: Text(classroom.name),
-                    ),
-                  ),
+                  GlideSelectOption(value: classroom.id, label: classroom.name),
               ],
               onChanged: (classId) {
                 if (classId == null || classId == _selectedClassId) return;
@@ -870,46 +1433,51 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                             final selected = _selectedStudentIds.contains(
                               student.id,
                             );
-                            return CheckboxListTile(
-                              value: selected,
-                              onChanged: (checked) => setState(() {
-                                if (checked == true) {
-                                  _selectedStudentIds.add(student.id);
-                                } else {
-                                  _selectedStudentIds.remove(student.id);
-                                }
-                              }),
-                              secondary: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: _palette.accent.withValues(
-                                      alpha: 0.12,
+                            return Material(
+                              color: Colors.transparent,
+                              child: CheckboxListTile(
+                                value: selected,
+                                onChanged: (checked) => setState(() {
+                                  if (checked == true) {
+                                    _selectedStudentIds.add(student.id);
+                                  } else {
+                                    _selectedStudentIds.remove(student.id);
+                                  }
+                                }),
+                                secondary: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: _palette.accent
+                                          .withValues(alpha: 0.12),
+                                      child: Text(
+                                        student.name.isEmpty
+                                            ? '?'
+                                            : student.name.characters.first
+                                                  .toUpperCase(),
+                                        style: TextStyle(
+                                          color: _palette.accent,
+                                        ),
+                                      ),
                                     ),
-                                    child: Text(
-                                      student.name.isEmpty
-                                          ? '?'
-                                          : student.name.characters.first
-                                                .toUpperCase(),
-                                      style: TextStyle(color: _palette.accent),
+                                    const SizedBox(width: 7),
+                                    Chip(
+                                      label: Text(_selectedClass.name),
+                                      visualDensity: VisualDensity.compact,
+                                      padding: EdgeInsets.zero,
                                     ),
-                                  ),
-                                  const SizedBox(width: 7),
-                                  Chip(
-                                    label: Text(_selectedClass.name),
-                                    visualDensity: VisualDensity.compact,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                ],
+                                  ],
+                                ),
+                                title: GlideSelect(
+                                  selected: selected,
+                                  child: Text(student.name),
+                                ),
+                                subtitle: student.email.isEmpty
+                                    ? null
+                                    : Text(student.email),
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
                               ),
-                              title: GlideSelect(
-                                selected: selected,
-                                child: Text(student.name),
-                              ),
-                              subtitle: student.email.isEmpty
-                                  ? null
-                                  : Text(student.email),
-                              controlAffinity: ListTileControlAffinity.leading,
                             );
                           },
                         ),
@@ -920,7 +1488,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                 padding: const EdgeInsets.all(11),
                 decoration: BoxDecoration(
                   color: _palette.accent.withValues(alpha: 0.07),
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: _palette.accent.withValues(alpha: 0.25),
                   ),
@@ -981,20 +1549,23 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        Icons.event_outlined,
-                        color: _palette.accent,
-                      ),
-                      title: Text(_text('Hạn nộp', 'Due date')),
-                      subtitle: Text(
-                        '${MaterialLocalizations.of(context).formatMediumDate(_dueAt)} · 18:00',
-                        style: _metaText(),
-                      ),
-                      trailing: TextButton(
-                        onPressed: _pickDueDate,
-                        child: Text(_text('Đổi ngày', 'Change')),
+                    Material(
+                      color: Colors.transparent,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(
+                          Icons.event_outlined,
+                          color: _palette.accent,
+                        ),
+                        title: Text(_text('Hạn nộp', 'Due date')),
+                        subtitle: Text(
+                          '${MaterialLocalizations.of(context).formatMediumDate(_dueAt)} · 18:00',
+                          style: _metaText(),
+                        ),
+                        trailing: TextButton(
+                          onPressed: _pickDueDate,
+                          child: Text(_text('Đổi ngày', 'Change')),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1034,7 +1605,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                             border: Border.all(
                               color: _gold.withValues(alpha: 0.4),
                             ),
-                            borderRadius: BorderRadius.circular(9),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             '$_coinReward Coin',
@@ -1108,21 +1679,31 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$_subject · ${_questions.length} ${_text('câu hỏi', 'questions')} · ${_questions.length * 2} min · $dueLabel',
+                      _text('Thông tin bài làm', 'Assignment details'),
                       style: _metaText(),
                     ),
-                    const SizedBox(height: 9),
-                    Text(
+                    const SizedBox(height: 12),
+                    _reviewRow(
+                      _text('Số lượng câu hỏi', 'Questions'),
+                      '${_questions.length}',
+                    ),
+                    _reviewRow(_text('Lớp', 'Class'), _selectedClass.name),
+                    _reviewRow(
+                      _text('Chủ đề', 'Topic'),
+                      _topicController.text.trim().isEmpty
+                          ? _text('Chưa nhập', 'Not set')
+                          : _topicController.text.trim(),
+                    ),
+                    _reviewRow(_text('Môn', 'Subject'), _subject),
+                    _reviewRow(
+                      _text('Hạn nộp', 'Due date'),
+                      '$dueLabel · 18:00',
+                    ),
+                    _reviewRow(
+                      _text('Người nhận', 'Recipients'),
                       _wholeClass
-                          ? _text(
-                              'Cả lớp ${_selectedClass.name}',
-                              'Whole class · ${_selectedClass.name}',
-                            )
-                          : '${_selectedStudents.length} ${_text('học sinh được chọn', 'selected students')} · ${_selectedClass.name}',
-                      style: TextStyle(
-                        color: _palette.canvasText,
-                        fontSize: 11,
-                      ),
+                          ? _text('Cả lớp', 'Whole class')
+                          : '${_selectedStudents.length} ${_text('học sinh', 'students')}',
                     ),
                     if (!_wholeClass && _selectedStudents.isNotEmpty) ...[
                       const SizedBox(height: 4),
@@ -1146,9 +1727,9 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => setState(() => _currentStep = 1),
+                onPressed: () => setState(() => _currentStep = 2),
                 icon: const Icon(Icons.visibility_outlined, size: 16),
-                label: Text(_text('Xem lại ', 'Review ')),
+                label: Text(_text('Soạn lại câu hỏi', 'Edit questions')),
               ),
             ],
           ),
@@ -1163,11 +1744,31 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
     fontWeight: FontWeight.w700,
   );
 
+  Widget _reviewRow(String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 130, child: Text(label, style: _metaText())),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: _palette.canvasText,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
   Widget _wizardPanel({required Widget child, Color? accent}) => Container(
     padding: const EdgeInsets.all(15),
     decoration: BoxDecoration(
       color: _palette.card,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(
         color: (accent ?? _palette.border).withValues(alpha: 0.7),
       ),
@@ -1217,9 +1818,9 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
             _publishing
                 ? _text('Đang tạo...', 'Publishing...')
                 : _currentStep == 1
-                ? _text('Tiếp: Người nhận', 'Next: Assignees')
+                ? _text('Tiếp: Soạn câu hỏi', 'Next: Write questions')
                 : _currentStep == 2
-                ? _text('Tiếp: Thưởng Coin', 'Next: Coin reward')
+                ? _text('Tiếp: Kiểm tra', 'Next: Review')
                 : _text('Tạo', 'Create'),
           ),
         ),
@@ -1227,11 +1828,118 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
     ),
   );
 
-  void _addQuestion() => setState(
-    () => _questions.add(
+  void _addQuestion() => setState(() {
+    _questions.add(
       _QuizQuestionDraft(text: '', options: const ['', '', '', '']),
-    ),
-  );
+    );
+    _selectedQuestionIndex = _questions.length - 1;
+  });
+
+  Future<void> _generateWithAi() async {
+    final requestController = TextEditingController();
+    final request = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          _text('Tạo bài tập bằng AI', 'Generate assignment with AI'),
+        ),
+        content: SizedBox(
+          width: 520,
+          child: TextField(
+            controller: requestController,
+            autofocus: true,
+            minLines: 3,
+            maxLines: 6,
+            maxLength: LabAIService.maxPromptCharacters,
+            decoration: InputDecoration(
+              hintText: _text(
+                'Ví dụ: Tạo 10 câu Hóa 10 về phản ứng oxi hóa khử, độ khó trung bình.',
+                'Example: Create 10 medium Chemistry questions about redox reactions.',
+              ),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_text('Hủy', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, requestController.text),
+            child: Text(_text('Tạo bản nháp', 'Create draft')),
+          ),
+        ],
+      ),
+    );
+    requestController.dispose();
+    if (!mounted || request == null || request.trim().isEmpty) return;
+
+    setState(() => _generatingAi = true);
+    try {
+      final draft = await LabAIService.createAssignmentDraft(
+        request: request,
+        subject: _subject,
+        languageCode: _languageCode,
+      );
+      if (!mounted) return;
+      _applyAssignmentDraft(draft);
+      setState(() => _generatingAi = false);
+      _showNotice(
+        _text(
+          'Đã tạo bản nháp. Hãy kiểm tra và chỉnh sửa trước khi tạo bài.',
+          'Draft created. Review and edit it before publishing.',
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _generatingAi = false);
+      _showNotice(error.toString());
+    }
+  }
+
+  Future<String> _generateDraftFromChat(String request) async {
+    if (_generatingAi) {
+      throw StateError('An assignment draft is already being generated.');
+    }
+    setState(() => _generatingAi = true);
+    try {
+      final draft = await LabAIService.createAssignmentDraft(
+        request: request,
+        subject: _subject,
+        languageCode: _languageCode,
+      );
+      if (!mounted) return '';
+      _applyAssignmentDraft(draft);
+      return _text(
+        'Đã soạn ${draft.questions.length} câu hỏi. Hãy kiểm tra và chỉnh sửa bản nháp.',
+        'Drafted ${draft.questions.length} questions. Review and edit the draft.',
+      );
+    } finally {
+      if (mounted) setState(() => _generatingAi = false);
+    }
+  }
+
+  void _applyAssignmentDraft(AssignmentDraft draft) {
+    for (final question in _questions) {
+      question.dispose();
+    }
+    _questions
+      ..clear()
+      ..addAll(
+        draft.questions.map(
+          (question) => _QuizQuestionDraft(
+            text: question.text,
+            options: question.options,
+            correctOption: question.correctOption,
+            points: question.points,
+            explanation: question.explanation ?? '',
+          ),
+        ),
+      );
+    _selectedQuestionIndex = 0;
+    _titleController.text = draft.title;
+  }
 
   void _duplicateQuestion(int index) => setState(() {
     _questions.insert(index + 1, _questions[index].duplicate());
@@ -1241,18 +1949,26 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
     if (_questions.length <= 1) return;
     setState(() {
       _questions.removeAt(index).dispose();
+      if (_selectedQuestionIndex >= _questions.length) {
+        _selectedQuestionIndex = _questions.length - 1;
+      } else if (_selectedQuestionIndex > index) {
+        _selectedQuestionIndex--;
+      }
     });
   }
 
   Future<void> _nextStep() async {
-    if (_currentStep == 1 && !_validateQuestions()) return;
-    if (_currentStep == 2 && !_wholeClass && _selectedStudentIds.isEmpty) {
+    if (_currentStep == 1 && _titleController.text.trim().isEmpty) {
+      _showNotice(_text('Hãy nhập tên bài tập.', 'Enter an assignment title.'));
+      return;
+    }
+    if (_currentStep == 1 && !_wholeClass && _selectedStudentIds.isEmpty) {
       _showNotice(
         _text('Hãy chọn ít nhất một học sinh.', 'Select at least one student.'),
       );
       return;
     }
-    if (_currentStep == 1) await _loadStudents();
+    if (_currentStep == 2 && !_validateQuestions()) return;
     if (mounted) setState(() => _currentStep = (_currentStep + 1).clamp(1, 3));
   }
 
@@ -1303,11 +2019,11 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
 
   Future<void> _publish() async {
     if (!_validateQuestions()) {
-      setState(() => _currentStep = 1);
+      setState(() => _currentStep = 2);
       return;
     }
     if (!_wholeClass && _selectedStudentIds.isEmpty) {
-      setState(() => _currentStep = 2);
+      setState(() => _currentStep = 1);
       return;
     }
     setState(() => _publishing = true);
@@ -1315,6 +2031,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
       await widget.service.createAssignment(
         classId: _selectedClassId,
         title: _titleController.text.trim(),
+        description: _topicController.text.trim(),
         subject: _subject,
         coinReward: _coinReward,
         recipients: _wholeClass ? const [] : _selectedStudentIds.toList(),
@@ -1329,6 +2046,7 @@ class _CreateAssignmentWizardState extends State<CreateAssignmentWizard> {
                   .toList(),
               correctOption: question.correctOption,
               points: question.points,
+              explanation: question.explanationController.text.trim(),
             ),
         ],
       );

@@ -1,12 +1,19 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'flashcard_models.dart';
 import 'flashcard_service.dart';
 
 class StudyFlipModeScreen extends StatefulWidget {
-  const StudyFlipModeScreen({super.key, required this.deck, required this.shuffle, required this.reverse});
+  const StudyFlipModeScreen({
+    super.key,
+    required this.deck,
+    required this.shuffle,
+    required this.reverse,
+  });
   final FlashcardDeck deck;
   final bool shuffle;
   final bool reverse;
@@ -15,7 +22,8 @@ class StudyFlipModeScreen extends StatefulWidget {
   State<StudyFlipModeScreen> createState() => _StudyFlipModeScreenState();
 }
 
-class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTickerProviderStateMixin {
+class _StudyFlipModeScreenState extends State<StudyFlipModeScreen>
+    with SingleTickerProviderStateMixin {
   late List<Flashcard> _cards;
   int _index = 0;
   bool _flipped = false;
@@ -27,8 +35,14 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
     super.initState();
     _cards = List.from(widget.deck.cards);
     if (widget.shuffle) _cards.shuffle(Random());
-    _ctrl = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
-    _anim = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _anim = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -63,10 +77,15 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
         barrierDismissible: false,
         builder: (_) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E2E),
-          title: Text('Hoàn thành!', style: GoogleFonts.outfit(color: Colors.white)),
+          title: Text(
+            'Hoàn thành!',
+            style: GoogleFonts.outfit(color: Colors.white),
+          ),
           actions: [
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF89B4FA)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF89B4FA),
+              ),
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
@@ -85,7 +104,9 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
       return Scaffold(
         backgroundColor: const Color(0xFF11111B),
         appBar: AppBar(title: const Text('Lật thẻ 3D')),
-        body: const Center(child: Text('Không có thẻ.', style: TextStyle(color: Colors.white))),
+        body: const Center(
+          child: Text('Không có thẻ.', style: TextStyle(color: Colors.white)),
+        ),
       );
     }
     final card = _cards[_index];
@@ -96,13 +117,19 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
       backgroundColor: const Color(0xFF11111B),
       appBar: AppBar(
         backgroundColor: const Color(0xFF181825),
-        title: Text('Lật thẻ 3D: ${widget.deck.title}', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16)),
+        title: Text(
+          'Lật thẻ 3D: ${widget.deck.title}',
+          style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            LinearProgressIndicator(value: (_index + 1) / _cards.length, color: const Color(0xFF89B4FA)),
+            LinearProgressIndicator(
+              value: (_index + 1) / _cards.length,
+              color: const Color(0xFF89B4FA),
+            ),
             const Gap(32),
             Expanded(
               child: Center(
@@ -117,7 +144,9 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
                         height: 280,
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: angle < pi / 2 ? const Color(0xFF181825) : const Color(0xFF313244),
+                          color: angle < pi / 2
+                              ? const Color(0xFF181825)
+                              : const Color(0xFF313244),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: const Color(0xFF45475A)),
                         ),
@@ -125,7 +154,11 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
                           child: Text(
                             angle < pi / 2 ? front : back,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.outfit(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       );
@@ -140,19 +173,25 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF38BA8)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF38BA8),
+                    ),
                     onPressed: () => _rate(CardDifficulty.forgotten),
                     child: const Text('Quên'),
                   ),
                   const Gap(12),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFAB387)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFAB387),
+                    ),
                     onPressed: () => _rate(CardDifficulty.memorized),
                     child: const Text('Tạm nhớ'),
                   ),
                   const Gap(12),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA6E3A1)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFA6E3A1),
+                    ),
                     onPressed: () => _rate(CardDifficulty.easy),
                     child: const Text('Rất dễ'),
                   ),
@@ -160,7 +199,10 @@ class _StudyFlipModeScreenState extends State<StudyFlipModeScreen> with SingleTi
               )
             else
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF89B4FA), foregroundColor: Colors.black),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF89B4FA),
+                  foregroundColor: Colors.black,
+                ),
                 onPressed: _flip,
                 child: const Text('Lật xem Đáp án'),
               ),

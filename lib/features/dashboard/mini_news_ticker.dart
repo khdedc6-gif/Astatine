@@ -332,7 +332,7 @@ class _TickerHeader extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: const Color(0xFF00E5FF).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               'LIVE',
@@ -692,7 +692,7 @@ class _SkeletonBodyState extends State<_SkeletonBody>
           margin: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
           ),
         );
         return Padding(
@@ -829,7 +829,7 @@ class _DotsRow extends StatelessWidget {
               color: isActive
                   ? const Color(0xFF00E5FF)
                   : palette.border.withValues(alpha: 1.0),
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
         );

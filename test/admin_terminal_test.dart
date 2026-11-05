@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:astatine_dashboard/core/branding/app_branding_assets.dart';
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/features/admin/admin_terminal.dart';
 import 'package:astatine_dashboard/features/dashboard/main_dashboard.dart';
@@ -75,13 +78,15 @@ void main() {
   ) async {
     var cacheClearCount = 0;
     var logoutCount = 0;
+    BrandingAssetSlot? selectedBrandingSlot;
+    BrandingImageSetting? uploadedCrop;
     final rpcCalls = <({String name, Map<String, dynamic> params})>[];
     await tester.pumpWidget(
       MaterialApp(
         navigatorKey: ToastService.navigatorKey,
         home: AdminTerminalHost(
           isDevLoader: () async => true,
-          sessionLoader: () async => false,
+          sessionLoader: () async => true,
           maintenanceLoader: () async => {'maintenance_mode': false},
           cacheClearer: () async => cacheClearCount++,
           adminRpc: (name, params) async {
@@ -107,6 +112,84 @@ void main() {
             };
           },
           onForceLogout: () async => logoutCount++,
+          brandingImagePicker: () async => BrandingImageFile(
+            bytes: Uint8List.fromList(const [
+              0x89,
+              0x50,
+              0x4e,
+              0x47,
+              0x0d,
+              0x0a,
+              0x1a,
+              0x0a,
+              0x00,
+              0x00,
+              0x00,
+              0x0d,
+              0x49,
+              0x48,
+              0x44,
+              0x52,
+              0x00,
+              0x00,
+              0x00,
+              0x01,
+              0x00,
+              0x00,
+              0x00,
+              0x01,
+              0x08,
+              0x06,
+              0x00,
+              0x00,
+              0x00,
+              0x1f,
+              0x15,
+              0xc4,
+              0x89,
+              0x00,
+              0x00,
+              0x00,
+              0x0b,
+              0x49,
+              0x44,
+              0x41,
+              0x54,
+              0x78,
+              0x9c,
+              0x63,
+              0x60,
+              0x00,
+              0x02,
+              0x00,
+              0x00,
+              0x05,
+              0x00,
+              0x01,
+              0xa5,
+              0xf6,
+              0x45,
+              0x40,
+              0x00,
+              0x00,
+              0x00,
+              0x00,
+              0x49,
+              0x45,
+              0x4e,
+              0x44,
+              0xae,
+              0x42,
+              0x60,
+              0x82,
+            ]),
+            name: 'preview.png',
+          ),
+          brandingImageUploader: (slot, file, crop) async {
+            selectedBrandingSlot = slot;
+            uploadedCrop = crop;
+            return 'https://assets.example.test/$slot';
+          },
           child: const Scaffold(body: Text('Application screen')),
         ),
       ),
@@ -121,11 +204,32 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).decoration?.hintText,
       isNull,
     );
+    expect(find.byKey(const Key('admin-upload-visuals')), findsOneWidget);
     expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('admin-upload-visuals')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Overview illustration'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('branding-image-publish')), findsOneWidget);
+    expect(find.text('Preview overview illustration'), findsOneWidget);
+    await tester.drag(find.byType(Slider).first, const Offset(80, 0));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('branding-image-publish')));
+    await tester.tap(find.byKey(const Key('branding-image-publish')));
+    await tester.pumpAndSettle();
+    expect(selectedBrandingSlot, BrandingAssetSlot.overviewIllustration);
+    expect(uploadedCrop!.scale, greaterThan(1));
+    expect(uploadedCrop?.x, 0);
+    expect(uploadedCrop?.y, 0);
+    expect(
+      find.text('Overview illustration image uploaded and published.'),
+      findsOneWidget,
+    );
 
     await _submitCommand(tester, 'help');
     expect(
-      find.textContaining('help  clear  clear-cache  ban'),
+      find.textContaining('help  clear  clear-cache  upload-visuals  ban'),
       findsOneWidget,
     );
 
@@ -207,8 +311,8 @@ void main() {
       MaterialApp(
         navigatorKey: ToastService.navigatorKey,
         home: AdminTerminalHost(
-          isDevLoader: () async => false,
-          sessionLoader: () async => false,
+          isDevLoader: () async => true,
+          sessionLoader: () async => true,
           maintenanceLoader: () async => {'maintenance_mode': false},
           onForceLogout: () async {},
           child: const Scaffold(body: Text('Application screen')),
@@ -234,7 +338,7 @@ void main() {
     await first.up();
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Access Denied'), findsOneWidget);
+    expect(find.textContaining('Access Granted'), findsOneWidget);
   });
 
   testWidgets('five rapid taps on the app name open the terminal', (
@@ -244,8 +348,8 @@ void main() {
       MaterialApp(
         navigatorKey: ToastService.navigatorKey,
         home: AdminTerminalHost(
-          isDevLoader: () async => false,
-          sessionLoader: () async => false,
+          isDevLoader: () async => true,
+          sessionLoader: () async => true,
           maintenanceLoader: () async => {'maintenance_mode': false},
           onForceLogout: () async {},
           child: const Scaffold(
@@ -264,7 +368,7 @@ void main() {
     }
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Access Denied'), findsOneWidget);
+    expect(find.textContaining('Access Granted'), findsOneWidget);
   });
 
   testWidgets('command input auto-focuses and keeps focus after Enter', (
@@ -275,7 +379,7 @@ void main() {
         navigatorKey: ToastService.navigatorKey,
         home: AdminTerminalHost(
           isDevLoader: () async => true,
-          sessionLoader: () async => false,
+          sessionLoader: () async => true,
           maintenanceLoader: () async => {'maintenance_mode': false},
           onForceLogout: () async {},
           child: const Scaffold(body: Text('Application screen')),
@@ -296,28 +400,90 @@ void main() {
     expect(submittedInput.focusNode?.hasFocus, isTrue);
   });
 
-  testWidgets('terminal denies users without an administrator role', (
-    tester,
-  ) async {
+  testWidgets('terminal cannot be opened when is_dev is false', (tester) async {
+    var verificationCount = 0;
     await tester.pumpWidget(
       MaterialApp(
         navigatorKey: ToastService.navigatorKey,
         home: AdminTerminalHost(
-          isDevLoader: () async => false,
-          sessionLoader: () async => false,
+          isDevLoader: () async {
+            verificationCount++;
+            return false;
+          },
+          sessionLoader: () async => true,
           maintenanceLoader: () async => {'maintenance_mode': false},
           cacheClearer: () async {},
           adminRpc: (name, params) async => {},
           onForceLogout: () async {},
-          child: const Scaffold(body: Text('Application screen')),
+          child: const Scaffold(
+            body: Center(
+              child: AdminTerminalTapTarget(child: Text('Astatine')),
+            ),
+          ),
         ),
       ),
     );
 
     await _openTerminal(tester);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Access Denied'), findsOneWidget);
+    expect(find.textContaining('ASTATINE ADMIN TERMINAL'), findsNothing);
+
+    for (var tap = 0; tap < 5; tap++) {
+      await tester.tap(find.text('Astatine'));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ASTATINE ADMIN TERMINAL'), findsNothing);
+
+    final first = await tester.startGesture(
+      const Offset(100, 100),
+      pointer: 201,
+    );
+    final second = await tester.startGesture(
+      const Offset(120, 100),
+      pointer: 202,
+    );
+    final third = await tester.startGesture(
+      const Offset(140, 100),
+      pointer: 203,
+    );
+    await third.up();
+    await second.up();
+    await first.up();
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ASTATINE ADMIN TERMINAL'), findsNothing);
     expect(find.text('Enter command'), findsNothing);
+    expect(verificationCount, greaterThanOrEqualTo(3));
+  });
+
+  testWidgets('initial system check does not replace the application screen', (
+    tester,
+  ) async {
+    final sessionResult = Completer<bool>();
+    final maintenanceResult = Completer<Map<String, dynamic>?>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: ToastService.navigatorKey,
+        home: AdminTerminalHost(
+          isDevLoader: () async => false,
+          sessionLoader: () => sessionResult.future,
+          maintenanceLoader: () => maintenanceResult.future,
+          onForceLogout: () async {},
+          child: const Scaffold(body: Text('Application screen')),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Application screen'), findsOneWidget);
+    expect(find.text('Đang kiểm tra hệ thống'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    sessionResult.complete(true);
+    maintenanceResult.complete({'maintenance_mode': false});
+    await tester.pumpAndSettle();
+    expect(find.text('Application screen'), findsOneWidget);
   });
 
   testWidgets('global maintenance blocks authenticated non-developer UI', (
@@ -379,7 +545,7 @@ Future<void> _openTerminal(WidgetTester tester) async {
   await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
-  await tester.pump();
+  await tester.pumpAndSettle();
 }
 
 Future<void> _submitCommand(WidgetTester tester, String command) async {

@@ -403,7 +403,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen> {
                         border: Border.all(
                           color: selectedRoom.color.withValues(alpha: 0.5),
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: [
@@ -462,7 +462,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen> {
       width: 300,
       child: InkWell(
         key: Key('laboratory-room-$index'),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         onTap: () => setState(() {
           _selectedRoomIndex = index;
           _showChemistryLab = index == 1;
@@ -473,7 +473,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen> {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: _palette.card,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected
                   ? room.color.withValues(alpha: 0.75)
@@ -527,7 +527,7 @@ class _VirtualLabScreenState extends State<VirtualLabScreen> {
                 height: 22,
                 decoration: BoxDecoration(
                   color: accentColor,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
               const SizedBox(width: 10),
@@ -661,7 +661,7 @@ class _ExperimentCardState extends State<_ExperimentCard> {
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             color: palette.card,
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _hovered
                   ? widget.accentColor.withValues(alpha: 0.65)
@@ -678,7 +678,7 @@ class _ExperimentCardState extends State<_ExperimentCard> {
                 : const [],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

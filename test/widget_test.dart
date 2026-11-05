@@ -10,6 +10,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
@@ -206,7 +207,7 @@ void main() {
 
     expect(find.text('Astatine'), findsOneWidget);
     expect(find.text('Studio'), findsNothing);
-    expect(find.text('Chào mừng trở lại, User!'), findsOneWidget);
+    expect(find.text('User!'), findsOneWidget);
     expect(find.byKey(const Key('dashboard-quick-start')), findsOneWidget);
     expect(find.text('BẮT ĐẦU NHANH'), findsOneWidget);
   });
@@ -383,6 +384,76 @@ void main() {
     expect(tester.getSize(sidebar).width, 260);
   });
 
+  testWidgets('sidebar account menu supports keyboard navigation', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(home: MainLayoutScreen()));
+    await tester.pumpAndSettle();
+
+    final card = tester.widget<InkWell>(
+      find.byKey(const Key('sidebar-profile-card')),
+    );
+    card.focusNode!.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final menuFade = tester.widget<FadeTransition>(
+      find.byKey(const Key('sidebar-account-menu-fade')),
+    );
+    expect(menuFade.opacity.value, closeTo(1, 0.001));
+    await tester.pumpAndSettle();
+
+    final menuRect = tester.getRect(
+      find.byKey(const Key('sidebar-account-menu')),
+    );
+    expect(menuRect.width, 196);
+    expect(menuRect.left, greaterThanOrEqualTo(0));
+    expect(menuRect.right, lessThanOrEqualTo(224));
+    expect(find.text('Hồ sơ & Cài đặt'), findsOneWidget);
+    expect(find.text('Gói tài khoản'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Gói tài khoản')).dy,
+      lessThan(tester.getTopLeft(find.text('Hồ sơ & Cài đặt')).dy),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hồ sơ & Cài đặt'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sidebar account menu closes when tapping outside', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(home: MainLayoutScreen()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sidebar-profile-card')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gói tài khoản'), findsOneWidget);
+    await tester.tapAt(const Offset(500, 100));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gói tài khoản'), findsNothing);
+    expect(find.text('Hồ sơ & Cài đặt'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('dashboard cards reveal on scroll and nav indicator slides', (
     tester,
   ) async {
@@ -422,6 +493,63 @@ void main() {
     expect(
       tester.widget<Opacity>(cardOpacity).opacity,
       greaterThan(initialOpacity),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('dark sidebar and subscription actions show active states', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AstatinePalette.themeData('Dark'),
+        home: const MainLayoutScreen(selectedTheme: 'Dark'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sidebarItem = tester.widget<InkWell>(
+      find.byKey(const ValueKey('dashboard-nav-4')),
+    );
+    expect(
+      sidebarItem.overlayColor!.resolve({WidgetState.hovered}),
+      const Color(0xFF3F3F46).withValues(alpha: 0.2),
+    );
+    expect(
+      sidebarItem.overlayColor!.resolve({WidgetState.pressed}),
+      const Color(0xFF52525B).withValues(alpha: 0.38),
+    );
+
+    final subscription = tester.widget<InkWell>(
+      find.byKey(const Key('subscription-account-pricing')),
+    );
+    expect(
+      subscription.overlayColor!.resolve({WidgetState.hovered}),
+      Colors.white.withValues(alpha: 0.13),
+    );
+    expect(
+      subscription.overlayColor!.resolve({WidgetState.pressed}),
+      Colors.white.withValues(alpha: 0.24),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dashboard-nav-4')));
+    await tester.pumpAndSettle();
+    final indicator = tester.widget<DecoratedBox>(
+      find
+          .descendant(
+            of: find.byKey(const Key('navigation-selection-indicator')),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
+    );
+    expect(
+      (indicator.decoration as BoxDecoration).color,
+      const Color(0xFF3F3F46),
     );
     expect(tester.takeException(), isNull);
   });
@@ -768,11 +896,88 @@ void main() {
       'AstatineTest',
     );
     await tester.enterText(find.byKey(const Key('login-password')), 'wrong');
-    await tester.tap(find.text('Đăng nhập'));
+    await tester.ensureVisible(find.byKey(const Key('login-submit')));
+    await tester.tap(find.byKey(const Key('login-submit')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('login-error')), findsOneWidget);
-    expect(find.text('Astatine'), findsOneWidget);
+    expect(find.text('Astatine'), findsNothing);
+  });
+
+  testWidgets('admin terminal cannot be opened from the login screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyK);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    final title = find.text('Học tốt hơn,\ncùng nhau mỗi ngày.');
+    for (var tap = 0; tap < 5; tap++) {
+      await tester.tap(title);
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    final first = await tester.startGesture(
+      const Offset(100, 100),
+      pointer: 301,
+    );
+    final second = await tester.startGesture(
+      const Offset(120, 100),
+      pointer: 302,
+    );
+    final third = await tester.startGesture(
+      const Offset(140, 100),
+      pointer: 303,
+    );
+    await third.up();
+    await second.up();
+    await first.up();
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('ASTATINE ADMIN TERMINAL'), findsNothing);
+  });
+
+  testWidgets('login layout adapts to a narrow phone viewport', (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(375, 812);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(MyApp(authenticator: _successfulSignIn));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('login-username')), findsOneWidget);
+    expect(find.byKey(const Key('login-password')), findsOneWidget);
+    expect(find.byKey(const Key('login-submit')), findsOneWidget);
+    expect(find.text('Astatine'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('login fills the desktop viewport without a brand mark', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+
+    final hero = find.byKey(const Key('login-hero-panel'));
+    final formPanel = find.byKey(const Key('login-form-panel'));
+    expect(tester.getTopLeft(hero), Offset.zero);
+    expect(tester.getSize(hero).height, 900);
+    expect(tester.getSize(formPanel).height, 900);
+    expect(find.text('Astatine'), findsNothing);
+    expect(find.byIcon(Icons.science_rounded), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('signup submits profile details and selected role', (
@@ -866,15 +1071,65 @@ void main() {
 
   testWidgets('login language toggle translates the form', (tester) async {
     await tester.pumpWidget(const MyApp());
-    expect(find.text('ĐỊA CHỈ EMAIL'), findsOneWidget);
+    expect(find.text('EMAIL HOẶC TÊN NGƯỜI DÙNG'), findsOneWidget);
     expect(find.text('MẬT KHẨU'), findsOneWidget);
+    expect(
+      find.text(
+        '“Tri thức là kho báu sẽ theo chân người sở hữu nó đi khắp mọi nơi.”',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('— Tục ngữ Trung Hoa'), findsOneWidget);
 
     await tester.tap(find.text('EN'));
     await tester.pumpAndSettle();
 
-    expect(find.text('EMAIL'), findsOneWidget);
+    expect(find.text('EMAIL OR USERNAME'), findsOneWidget);
     expect(find.text('PASSWORD'), findsOneWidget);
-    expect(find.text('Log In'), findsOneWidget);
+    expect(find.text('Sign in'), findsOneWidget);
+    expect(
+      find.text('“Knowledge is a treasure that follows its owner everywhere.”'),
+      findsOneWidget,
+    );
+    expect(find.text('— Chinese proverb'), findsOneWidget);
+  });
+
+  testWidgets('login learning quote rotates with a fade transition', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(375, 812);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pump(const Duration(milliseconds: 350));
+
+    final nextQuote = find.text(
+      '“Hãy sống như thể bạn sẽ chết ngày mai, hãy học như thể bạn sẽ sống mãi mãi.”',
+    );
+    expect(nextQuote, findsOneWidget);
+    final fade = tester.widget<FadeTransition>(
+      find.ancestor(of: nextQuote, matching: find.byType(FadeTransition)).first,
+    );
+    expect(fade.opacity.value, greaterThan(0));
+    expect(fade.opacity.value, lessThan(1));
+    expect(tester.takeException(), isNull);
+
+    for (final author in [
+      'Albert Einstein',
+      'John Wooden',
+      'Zig Ziglar',
+      'Tục ngữ Trung Hoa',
+    ]) {
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(const Duration(seconds: 7));
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(find.text('— $author'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('blue cursor appears while the mouse is over the app', (
@@ -974,6 +1229,31 @@ void main() {
     expect(find.text('Chọn hạn hoàn thành nhóm'), findsOneWidget);
     expect(find.widgetWithText(ElevatedButton, 'Tạo nhóm'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('study group form reflows without overlapping at narrow widths', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final size in [const Size(360, 800), const Size(820, 900)]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(
+        const MaterialApp(home: CreateWorkspaceScreen(isVietnamese: true)),
+      );
+      await tester.pumpAndSettle();
+
+      final backButton = tester.getRect(
+        find.widgetWithText(OutlinedButton, 'Quay lại'),
+      );
+      final createButton = tester.getRect(
+        find.widgetWithText(ElevatedButton, 'Tạo nhóm'),
+      );
+      expect(backButton.overlaps(createButton), isFalse);
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('study group invitations use selected classroom members', (
@@ -1620,7 +1900,8 @@ Future<void> _signIn(
     'student@example.com',
   );
   await tester.enterText(find.byKey(const Key('login-password')), '123');
-  await tester.tap(find.text('Đăng nhập'));
+  await tester.ensureVisible(find.byKey(const Key('login-submit')));
+  await tester.tap(find.byKey(const Key('login-submit')));
   await tester.pumpAndSettle();
 }
 

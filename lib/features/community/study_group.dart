@@ -700,7 +700,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: _palette.card,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: _palette.border),
               ),
               child: Row(
@@ -854,137 +854,144 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _fieldGroup(
-                      _text('SUBJECT', 'MÔN HỌC'),
-                      DropdownButtonFormField<String>(
-                        key: const Key('subject-dropdown'),
-                        initialValue: _selectedSubject,
-                        isExpanded: true,
-                        decoration: _inputDecoration(
-                          hintText: _text('Select a subject', 'Chọn môn học'),
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        dropdownColor: _palette.card,
-                        items: [
-                          for (final subject in _subjects)
-                            DropdownMenuItem(
-                              value: subject,
-                              child: GlideSelect(
-                                selected: _selectedSubject == subject,
-                                child: Text(_subjectLabel(subject)),
-                              ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final fieldWidth = constraints.maxWidth >= 760
+                      ? (constraints.maxWidth - 28) / 3
+                      : constraints.maxWidth;
+                  return Wrap(
+                    spacing: 14,
+                    runSpacing: 14,
+                    children: [
+                      SizedBox(
+                        width: fieldWidth,
+                        child: _fieldGroup(
+                          _text('SUBJECT', 'MÔN HỌC'),
+                          GlideSelect<String>.dropdown(
+                            key: const Key('subject-dropdown'),
+                            value: _selectedSubject,
+                            decoration: _inputDecoration(
+                              hintText: _text('', ''),
                             ),
-                        ],
-                        onChanged: (value) =>
-                            setState(() => _selectedSubject = value),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _fieldGroup(
-                      _text('TOPIC', 'CHỦ ĐỀ'),
-                      TextField(
-                        key: const Key('topic-input'),
-                        controller: _topicController,
-                        style: TextStyle(color: _palette.primaryText),
-                        decoration: _inputDecoration(
-                          hintText: _text('Enter topic', 'Nhập chủ đề'),
+                            options: [
+                              for (final subject in _subjects)
+                                GlideSelectOption(
+                                  value: subject,
+                                  label: _subjectLabel(subject),
+                                ),
+                            ],
+                            onChanged: (value) =>
+                                setState(() => _selectedSubject = value),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _fieldGroup(
-                      _text('DEADLINE', 'HẠN HOÀN THÀNH'),
-                      TextField(
-                        key: const Key('deadline-picker'),
-                        controller: _deadlineController,
-                        readOnly: true,
-                        onTap: _pickDeadline,
-                        style: TextStyle(color: _palette.primaryText),
-                        decoration: _inputDecoration(
-                          suffixIcon: Icons.calendar_today_outlined,
+                      SizedBox(
+                        width: fieldWidth,
+                        child: _fieldGroup(
+                          _text('TOPIC', 'CHỦ ĐỀ'),
+                          TextField(
+                            key: const Key('topic-input'),
+                            controller: _topicController,
+                            style: TextStyle(color: _palette.primaryText),
+                            decoration: _inputDecoration(
+                              hintText: _text('Enter topic', 'Nhập chủ đề'),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                      SizedBox(
+                        width: fieldWidth,
+                        child: _fieldGroup(
+                          _text('DEADLINE', 'HẠN HOÀN THÀNH'),
+                          TextField(
+                            key: const Key('deadline-picker'),
+                            controller: _deadlineController,
+                            readOnly: true,
+                            onTap: _pickDeadline,
+                            style: TextStyle(color: _palette.primaryText),
+                            decoration: _inputDecoration(
+                              suffixIcon: Icons.calendar_today_outlined,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _fieldGroup(
-                      _text('GROUP NAME', 'TÊN NHÓM'),
-                      TextField(
-                        key: const Key('group-name-input'),
-                        controller: _groupNameController,
-                        style: TextStyle(color: _palette.primaryText),
-                        decoration: _inputDecoration(
-                          hintText: _text('Enter group name', 'Nhập tên nhóm'),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _fieldGroup(
-                      _text('CLASS', 'LỚP'),
-                      _usesRemoteGroups
-                          ? DropdownButtonFormField<String>(
-                              key: const Key('class-name-input'),
-                              initialValue: _selectedClassroomId,
-                              isExpanded: true,
-                              decoration: _inputDecoration(
-                                hintText: _loadingClassrooms
-                                    ? _text(
-                                        'Loading classes...',
-                                        'Đang tải lớp...',
-                                      )
-                                    : _classrooms.isEmpty
-                                    ? _text(
-                                        'No joined classes',
-                                        'Chưa tham gia lớp nào',
-                                      )
-                                    : _text('Select a class', 'Chọn lớp'),
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              dropdownColor: _palette.card,
-                              items: [
-                                for (final classroom in _classrooms)
-                                  DropdownMenuItem(
-                                    value: classroom.id,
-                                    child: GlideSelect(
-                                      selected:
-                                          _selectedClassroomId == classroom.id,
-                                      child: Text(
-                                        classroom.name,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                              onChanged:
-                                  _loadingClassrooms || _classrooms.isEmpty
-                                  ? null
-                                  : _selectClassroom,
-                            )
-                          : TextField(
-                              key: const Key('class-name-input'),
-                              controller: _classNameController,
-                              style: TextStyle(color: _palette.primaryText),
-                              decoration: _inputDecoration(
-                                hintText: _text('Enter class', 'Nhập lớp'),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final fieldWidth = constraints.maxWidth >= 520
+                      ? (constraints.maxWidth - 14) / 2
+                      : constraints.maxWidth;
+                  return Wrap(
+                    spacing: 14,
+                    runSpacing: 14,
+                    children: [
+                      SizedBox(
+                        width: fieldWidth,
+                        child: _fieldGroup(
+                          _text('GROUP NAME', 'TÊN NHÓM'),
+                          TextField(
+                            key: const Key('group-name-input'),
+                            controller: _groupNameController,
+                            style: TextStyle(color: _palette.primaryText),
+                            decoration: _inputDecoration(
+                              hintText: _text(
+                                'Enter group name',
+                                'Nhập tên nhóm',
                               ),
                             ),
-                    ),
-                  ),
-                ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: fieldWidth,
+                        child: _fieldGroup(
+                          _text('CLASS', 'LỚP'),
+                          _usesRemoteGroups
+                              ? GlideSelect<String>.dropdown(
+                                  key: const Key('class-name-input'),
+                                  value: _selectedClassroomId,
+                                  decoration: _inputDecoration(
+                                    hintText: _loadingClassrooms
+                                        ? _text(
+                                            'Loading classes...',
+                                            'Đang tải lớp...',
+                                          )
+                                        : _classrooms.isEmpty
+                                        ? _text(
+                                            'No joined classes',
+                                            'Chưa tham gia lớp nào',
+                                          )
+                                        : _text('', ''),
+                                  ),
+                                  options: [
+                                    for (final classroom in _classrooms)
+                                      GlideSelectOption(
+                                        value: classroom.id,
+                                        label: classroom.name,
+                                      ),
+                                  ],
+                                  onChanged:
+                                      _loadingClassrooms || _classrooms.isEmpty
+                                      ? null
+                                      : _selectClassroom,
+                                )
+                              : TextField(
+                                  key: const Key('class-name-input'),
+                                  controller: _classNameController,
+                                  style: TextStyle(color: _palette.primaryText),
+                                  decoration: _inputDecoration(
+                                    hintText: _text('Enter class', 'Nhập lớp'),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 14),
               Row(
@@ -992,40 +999,66 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                 children: [Expanded(child: _buildInviteeField())],
               ),
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  Icon(Icons.check_circle, color: _palette.accent, size: 15),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      _text(
-                        'All settings validated • Ready to deploy',
-                        'Thông tin hợp lệ • Sẵn sàng tạo nhóm',
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final status = Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: _palette.accent,
+                        size: 15,
                       ),
-                      style: TextStyle(
-                        color: _palette.secondaryText,
-                        fontSize: 11,
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          _text(
+                            'All settings validated • Ready to deploy',
+                            'Thông tin hợp lệ • Sẵn sàng tạo nhóm',
+                          ),
+                          style: TextStyle(
+                            color: _palette.secondaryText,
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  OutlinedButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _palette.secondaryText,
-                      side: BorderSide(color: _palette.border),
-                    ),
-                    child: Text(_text('Back', 'Quay lại')),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: _savingGroup ? null : _createInvite,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _palette.accent,
-                      foregroundColor: _palette.accentText,
-                    ),
-                    child: Text(_text('Create Group', 'Tạo nhóm')),
-                  ),
-                ],
+                    ],
+                  );
+                  final actions = Wrap(
+                    spacing: 10,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _palette.secondaryText,
+                          side: BorderSide(color: _palette.border),
+                        ),
+                        child: Text(_text('Back', 'Quay lại')),
+                      ),
+                      ElevatedButton(
+                        onPressed: _savingGroup ? null : _createInvite,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _palette.accent,
+                          foregroundColor: _palette.accentText,
+                        ),
+                        child: Text(_text('Create Group', 'Tạo nhóm')),
+                      ),
+                    ],
+                  );
+                  if (constraints.maxWidth < 600) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [status, const SizedBox(height: 8), actions],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: status),
+                      const SizedBox(width: 12),
+                      actions,
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -1079,45 +1112,22 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
             children: [
               _fieldGroup(
                 _text('ASSIGNEE', 'NGƯỜI PHỤ TRÁCH'),
-                DropdownButtonFormField<String>(
+                GlideSelect<String>.dropdown(
                   key: const Key('assignee-dropdown'),
-                  initialValue:
+                  value:
                       _selectedAssignee?.isNotEmpty == true &&
                           _invitedMembers.contains(_selectedAssignee)
                       ? _selectedAssignee
                       : null,
-                  isExpanded: true,
-                  decoration: _inputDecoration(
-                    hintText: _text('Select a member', 'Chọn thành viên'),
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  dropdownColor: _palette.card,
-                  items: [
+                  decoration: _inputDecoration(hintText: _text('', '')),
+                  options: [
                     for (final member in _invitedMembers.where(
                       (member) => member.isNotEmpty,
                     ))
-                      DropdownMenuItem(
-                        key: Key(
-                          'assignee-option-${member.replaceAll(' ', '-')}',
-                        ),
+                      GlideSelectOption(
                         value: member,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            GlideSelect(
-                              selected: _selectedAssignee == member,
-                              child: Text(member),
-                            ),
-                            if (_hasTaskDescription(member)) ...[
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.check,
-                                color: Colors.blueAccent,
-                                size: 18,
-                              ),
-                            ],
-                          ],
-                        ),
+                        label: member,
+                        tag: _hasTaskDescription(member) ? '✓' : null,
                       ),
                   ],
                   onChanged: _selectAssignee,
@@ -1164,38 +1174,26 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           final contentFields = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _fieldGroup(
-                      _text('CONTENT FORMAT', 'ĐỊNH DẠNG NỘI DUNG'),
-                      DropdownButtonFormField<String>(
-                        key: const Key('content-format-dropdown'),
-                        initialValue: _selectedContentFormat,
-                        isExpanded: true,
-                        decoration: _inputDecoration(
-                          hintText: _text('Select a format', 'Chọn định dạng'),
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        dropdownColor: _palette.card,
-                        items: [
-                          for (final format in _contentFormats)
-                            DropdownMenuItem(
-                              value: format,
-                              child: GlideSelect(
-                                selected: _selectedContentFormat == format,
-                                child: Text(_contentFormatLabel(format)),
-                              ),
-                            ),
-                        ],
-                        onChanged: (format) =>
-                            setState(() => _selectedContentFormat = format),
-                      ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final contentFormatField = _fieldGroup(
+                    _text('CONTENT FORMAT', 'ĐỊNH DẠNG NỘI DUNG'),
+                    GlideSelect<String>.dropdown(
+                      key: const Key('content-format-dropdown'),
+                      value: _selectedContentFormat,
+                      decoration: _inputDecoration(hintText: _text('', '')),
+                      options: [
+                        for (final format in _contentFormats)
+                          GlideSelectOption(
+                            value: format,
+                            label: _contentFormatLabel(format),
+                          ),
+                      ],
+                      onChanged: (format) =>
+                          setState(() => _selectedContentFormat = format),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
+                  );
+                  final quantityField = SizedBox(
                     width: 150,
                     child: _fieldGroup(
                       _text('QUANTITY', 'SỐ LƯỢNG'),
@@ -1232,8 +1230,26 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  );
+                  if (constraints.maxWidth < 460) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        contentFormatField,
+                        const SizedBox(height: 10),
+                        quantityField,
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: contentFormatField),
+                      const SizedBox(width: 12),
+                      quantityField,
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 10),
               _fieldGroup(
@@ -1359,7 +1375,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
             child: Text(
               _text(
                 _selectedClassroomId == null
-                    ? 'Select a class before adding members.'
+                    ? 'Choose a class before adding members.'
                     : 'There are no other members in this class.',
                 _selectedClassroomId == null
                     ? 'Hãy chọn lớp trước khi thêm thành viên.'
@@ -1874,7 +1890,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: _palette.accent.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           _chatRole(
@@ -1907,8 +1923,8 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                     decoration: BoxDecoration(
                       color: bubbleColor,
                       borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(12),
-                        topRight: const Radius.circular(12),
+                        topLeft: const Radius.circular(8),
+                        topRight: const Radius.circular(8),
                         bottomLeft: Radius.circular(isCurrentUser ? 12 : 3),
                         bottomRight: Radius.circular(isCurrentUser ? 3 : 12),
                       ),
@@ -2031,21 +2047,21 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
     final progress = _groupProgress(project);
     return Material(
       color: _palette.card,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
         key: Key('project-card-${project.id}'),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         onTap: () {
           setState(() => _selectedProject = project);
           if (_usesRemoteGroups) unawaited(_loadProjectFilesSafely(project));
         },
         child: HoverRipple(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           color: _palette.accent,
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _palette.border),
             ),
             child: Column(
@@ -2095,7 +2111,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                       child: LinearProgressIndicator(
                         value: progress,
                         minHeight: 6,
-                        borderRadius: BorderRadius.circular(3),
+                        borderRadius: BorderRadius.circular(8),
                         backgroundColor: _palette.input,
                         color: _palette.accent,
                       ),
@@ -2238,7 +2254,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                 key: Key('member-progress-bar-${project.id}-$memberKey'),
                 value: progress,
                 minHeight: 6,
-                borderRadius: BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(8),
                 backgroundColor: _palette.input,
                 color: _palette.accent,
               ),
@@ -2394,7 +2410,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
         color: _palette.accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border),
       ),
       child: Column(
@@ -2621,7 +2637,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
             key: Key('group-progress-bar-${project.id}'),
             value: progress,
             minHeight: 8,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
             backgroundColor: _palette.input,
             color: _palette.accent,
           ),
@@ -2732,7 +2748,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
           key: Key('personal-progress-${project.id}-${assignment.assignee}'),
           value: taskProgress,
           minHeight: 5,
-          borderRadius: BorderRadius.circular(3),
+          borderRadius: BorderRadius.circular(8),
           backgroundColor: _palette.input,
           color: _palette.accent,
         ),
@@ -2833,7 +2849,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
             .putIfAbsent(project.id, () => [])
             .add(
               _WorkspaceUpload(
-                name: _text('File selection failed', 'Không thể chọn tệp'),
+                name: _text('Could not choose file', 'Không thể chọn tệp'),
                 assignee: assignment.assignee,
                 status: _WorkspaceUploadStatus.error,
                 uploadedAt: DateTime.now(),
@@ -2864,7 +2880,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
         if (_usesRemoteGroups) {
           final fileSize = await file.length();
           if (fileSize == null) {
-            throw StateError('Could not verify the selected file size.');
+            throw StateError('Could not verify the file size.');
           }
           if (fileSize > StudyGroupRepository.maximumFileSizeBytes) {
             throw ArgumentError('File exceeds the 50 MB upload limit.');
@@ -2994,7 +3010,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: _palette.card,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border),
         boxShadow: _palette.glowEnabled
             ? [
@@ -3074,7 +3090,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
       initialDate: _deadline.isBefore(today) ? today : _deadline,
       firstDate: today,
       lastDate: DateTime(today.year + 10),
-      helpText: _text('Select group deadline', 'Chọn hạn hoàn thành nhóm'),
+      helpText: _text('Choose group deadline', 'Chọn hạn hoàn thành nhóm'),
     );
     if (selectedDate == null || !mounted) return;
     setState(() {
@@ -3203,7 +3219,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
                   backgroundColor: _palette.accent,
                   foregroundColor: _palette.accentText,
                 ),
-                child: Text(_text('Add selected', 'Thêm thành viên đã chọn')),
+                child: Text(_text('Add members', 'Thêm thành viên đã chọn')),
               ),
             ],
           );
@@ -3300,7 +3316,7 @@ class _CreateWorkspaceScreenState extends State<CreateWorkspaceScreen> {
     if (!_hasCompleteInviteDetails) {
       ToastService.showError(
         _text(
-          'Select a class, invite at least one class member, and complete all group details.',
+          'Choose a class, invite at least one class member, and complete all group details.',
           'Hãy chọn lớp, mời ít nhất một thành viên trong lớp và nhập đầy đủ thông tin.',
         ),
       );

@@ -88,9 +88,10 @@ String? _findImageUrl(String item) {
   return null;
 }
 
-String _plainText(String value) => _decodeXmlEntities(
-  value.replaceAll(RegExp(r'<[^>]*>'), ' '),
-).replaceAll(RegExp(r'\s+'), ' ').trim();
+String _plainText(String value) =>
+    _decodeXmlEntities(value.replaceAll(RegExp(r'<[^>]*>'), ' '))
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
 
 String _decodeXmlEntities(String value) {
   const namedEntities = {
@@ -106,14 +107,13 @@ String _decodeXmlEntities(String value) {
   for (final entry in namedEntities.entries) {
     decoded = decoded.replaceAll(entry.key, entry.value);
   }
-  return decoded.replaceAllMapped(
-    RegExp(r'&#(?:x([0-9a-fA-F]+)|(\d+));'),
-    (match) {
-      final codePoint = int.tryParse(
-        match.group(1) ?? match.group(2)!,
-        radix: match.group(1) == null ? 10 : 16,
-      );
-      return codePoint == null ? match.group(0)! : String.fromCharCode(codePoint);
-    },
-  );
+  return decoded.replaceAllMapped(RegExp(r'&#(?:x([0-9a-fA-F]+)|(\d+));'), (
+    match,
+  ) {
+    final codePoint = int.tryParse(
+      match.group(1) ?? match.group(2)!,
+      radix: match.group(1) == null ? 10 : 16,
+    );
+    return codePoint == null ? match.group(0)! : String.fromCharCode(codePoint);
+  });
 }

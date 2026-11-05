@@ -424,7 +424,7 @@ class _StudentProfileSettingsScreenState
           height: 42,
           decoration: BoxDecoration(
             color: _cyan.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: _cyan.withValues(alpha: 0.3)),
           ),
           child: Icon(Icons.manage_accounts_outlined, color: _cyan),
@@ -630,7 +630,7 @@ class _StudentProfileSettingsScreenState
                   foregroundColor: _palette.accentText,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 child: _isSavingProfile
@@ -707,7 +707,7 @@ class _StudentProfileSettingsScreenState
         fit: StackFit.expand,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             child: imageUrl.isEmpty
                 ? DecoratedBox(
                     decoration: BoxDecoration(
@@ -890,11 +890,11 @@ class _StudentProfileSettingsScreenState
           vertical: 13,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: _cyan.withValues(alpha: 0.28)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: _cyan.withValues(alpha: 0.9)),
         ),
       ),
@@ -907,7 +907,7 @@ class _StudentProfileSettingsScreenState
     final iconUrl = item['icon_url'] as String?;
     final itemType = item['item_type'] as String? ?? '';
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(8),
       onTap: () => setState(() => item['is_equipped'] = !equipped),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
@@ -915,7 +915,7 @@ class _StudentProfileSettingsScreenState
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: equipped ? _cyan.withValues(alpha: 0.1) : _palette.input,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: equipped ? _cyan : _palette.border,
             width: equipped ? 1.5 : 1,
@@ -929,7 +929,7 @@ class _StudentProfileSettingsScreenState
           children: [
             if (iconUrl != null && iconUrl.trim().isNotEmpty)
               ClipRRect(
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(8),
                 child: Image.network(
                   iconUrl,
                   width: 24,
@@ -1108,7 +1108,7 @@ class _StudentProfileSettingsScreenState
             height: 28,
             decoration: BoxDecoration(
               color: isTextSwatch ? _palette.background : color,
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _palette.accent.withValues(alpha: 0.7)),
             ),
             alignment: Alignment.center,
@@ -1214,30 +1214,15 @@ class _StudentProfileSettingsScreenState
               style: TextStyle(color: _palette.primaryText, fontSize: 12),
             ),
           ),
-          DropdownButton<String>(
+          GlideSelect<String>.dropdown(
             value: value,
+            options: [
+              for (final option in options)
+                GlideSelectOption(value: option, label: option),
+            ],
             onChanged: (selection) {
               if (selection != null) onChanged(selection);
             },
-            dropdownColor: _palette.card,
-            borderRadius: BorderRadius.circular(8),
-            underline: const SizedBox.shrink(),
-            icon: Icon(Icons.expand_more_rounded, color: _cyan, size: 19),
-            style: TextStyle(
-              color: _palette.primaryText,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-            items: [
-              for (final option in options)
-                DropdownMenuItem(
-                  value: option,
-                  child: GlideSelect(
-                    selected: value == option,
-                    child: Text(option),
-                  ),
-                ),
-            ],
           ),
         ],
       ),
@@ -1318,7 +1303,7 @@ class _StudentProfileSettingsScreenState
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
@@ -1501,7 +1486,7 @@ class _GlassPanel extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: palette.card,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
         boxShadow: palette.glowEnabled
             ? [

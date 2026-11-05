@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:astatine_dashboard/core/branding/app_branding_assets.dart';
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/core/platform/desktop_window_service.dart';
+import 'package:astatine_dashboard/core/theme/app_theme.dart';
 import 'package:astatine_dashboard/features/chemistry/pseudo_3d_beaker.dart';
+import 'package:astatine_dashboard/features/admin/branding_image_editor_dialog.dart';
 import 'package:astatine_dashboard/features/profile/subscription_name_effect.dart';
 import 'package:astatine_dashboard/features/profile/user_profile_store.dart';
 
@@ -28,6 +31,8 @@ class AdminTerminalHost extends StatefulWidget {
     this.sessionLoader,
     this.maintenanceLoader,
     this.fullscreenToggler,
+    this.brandingImageUploader,
+    this.brandingImagePicker,
   });
 
   final Widget child;
@@ -39,6 +44,8 @@ class AdminTerminalHost extends StatefulWidget {
   final AdminSessionLoader? sessionLoader;
   final AdminMaintenanceLoader? maintenanceLoader;
   final AdminFullscreenToggler? fullscreenToggler;
+  final AppBrandingImageUploader? brandingImageUploader;
+  final AppBrandingImagePicker? brandingImagePicker;
 
   @override
   State<AdminTerminalHost> createState() => _AdminTerminalHostState();
@@ -113,10 +120,10 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
   static const _touchMovementTolerance = 24.0;
 
   bool _terminalOpen = false;
+  bool _terminalOpening = false;
   bool _hasSession = false;
   bool _isDev = false;
   bool _maintenanceEnabled = false;
-  bool _maintenanceChecking = true;
   String? _maintenanceMessage;
   Object? _maintenanceError;
   int _maintenanceRefreshRevision = 0;
@@ -138,7 +145,7 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
       _authStateSubscription = client.auth.onAuthStateChange.listen((_) {
         _watchCurrentUserBanStatus();
         unawaited(_verifyCurrentUserBanStatus());
-        _refreshMaintenance(markChecking: true);
+        _refreshMaintenance();
       });
       _watchCurrentUserBanStatus();
       unawaited(_verifyCurrentUserBanStatus());
@@ -147,7 +154,7 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
         unawaited(_verifyCurrentUserBanStatus());
       });
     }
-    _refreshMaintenance(markChecking: true);
+    _refreshMaintenance();
   }
 
   @override
@@ -285,15 +292,9 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
   Future<bool> _loadHasSession() async =>
       Supabase.instance.client.auth.currentUser != null;
 
-  Future<void> _refreshMaintenance({bool markChecking = false}) async {
+  Future<void> _refreshMaintenance() async {
     final revision = ++_maintenanceRefreshRevision;
     var hasSession = _hasSession;
-    if (markChecking && mounted) {
-      setState(() {
-        _maintenanceChecking = true;
-        _maintenanceError = null;
-      });
-    }
 
     try {
       hasSession = await (widget.sessionLoader ?? _loadHasSession)();
@@ -310,16 +311,17 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
           _isDev != isDev ||
           _maintenanceEnabled != enabled ||
           _maintenanceMessage != message ||
-          _maintenanceChecking ||
           _maintenanceError != null) {
         setState(() {
           _hasSession = hasSession;
           _isDev = isDev;
           _maintenanceEnabled = enabled;
           _maintenanceMessage = message;
-          _maintenanceChecking = false;
           _maintenanceError = null;
         });
+      }
+      if (!isDev && _terminalOpen) {
+        ToastService.navigatorKey.currentState?.maybePop();
       }
     } catch (error) {
       if (!mounted || revision != _maintenanceRefreshRevision) return;
@@ -327,25 +329,51 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
         debugPrint('Failed to read global maintenance state: $error');
       }
       if (_maintenanceError?.toString() == error.toString() &&
-          !_maintenanceChecking) {
+          _maintenanceError != null) {
         return;
       }
       setState(() {
         _hasSession = hasSession;
-        _maintenanceChecking = false;
         _maintenanceError = error;
       });
     }
   }
 
-  void _toggleTerminal() {
-    if (_hasSession && _maintenanceEnabled && !_isDev) return;
+  Future<void> _toggleTerminal() async {
     final navigator = ToastService.navigatorKey.currentState;
     if (_terminalOpen) {
       navigator?.maybePop();
       return;
     }
-    if (navigator == null) {
+    if (_terminalOpening || !_hasSession || navigator == null) return;
+
+    _terminalOpening = true;
+    try {
+      final hasSession = await (widget.sessionLoader ?? _loadHasSession)();
+      if (!mounted) return;
+      if (!hasSession) {
+        setState(() {
+          _hasSession = false;
+          _isDev = false;
+        });
+        return;
+      }
+
+      final isDev = await (widget.isDevLoader ?? _loadIsDevFlag)() == true;
+      if (!mounted) return;
+      setState(() {
+        _hasSession = true;
+        _isDev = isDev;
+      });
+      if (!isDev) return;
+    } catch (error) {
+      debugPrint('Failed to verify admin terminal access: $error');
+      return;
+    } finally {
+      _terminalOpening = false;
+    }
+
+    if (!navigator.mounted) {
       debugPrint(
         'Admin terminal shortcut pressed before app navigator mounted.',
       );
@@ -353,16 +381,23 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
     }
 
     _terminalOpen = true;
-    showDialog<void>(
-      context: navigator.context,
-      barrierColor: const Color(0xD900060C),
-      builder: (_) => _AdminTerminalDialog(
-        isDevLoader: widget.isDevLoader ?? _loadIsDevFlag,
-        cacheClearer: widget.cacheClearer ?? _clearLocalCache,
-        adminRpc: widget.adminRpc ?? _adminRpc,
-        onForceLogout: widget.onForceLogout,
-      ),
-    ).whenComplete(() => _terminalOpen = false);
+    try {
+      await showDialog<void>(
+        context: navigator.context,
+        barrierColor: const Color(0xD900060C),
+        builder: (_) => _AdminTerminalDialog(
+          cacheClearer: widget.cacheClearer ?? _clearLocalCache,
+          adminRpc: widget.adminRpc ?? _adminRpc,
+          onForceLogout: widget.onForceLogout,
+          brandingImageUploader:
+              widget.brandingImageUploader ?? AppBrandingAssets.upload,
+          brandingImagePicker:
+              widget.brandingImagePicker ?? AppBrandingAssets.pickImage,
+        ),
+      );
+    } finally {
+      _terminalOpen = false;
+    }
   }
 
   Future<void> _toggleFullscreen() async {
@@ -428,9 +463,7 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
   Widget build(BuildContext context) {
     final blocked =
         _hasSession &&
-        (_maintenanceChecking ||
-            _maintenanceError != null ||
-            (_maintenanceEnabled && !_isDev));
+        (_maintenanceError != null || (_maintenanceEnabled && !_isDev));
     return AdminTerminalActions(
       openTerminal: _toggleTerminal,
       toggleFullscreen: _toggleFullscreen,
@@ -458,13 +491,9 @@ class _AdminTerminalHostState extends State<AdminTerminalHost> {
                   _MaintenanceScreen(
                     title: _maintenanceError != null
                         ? 'Không thể xác minh dịch vụ'
-                        : _maintenanceChecking
-                        ? 'Đang kiểm tra hệ thống'
                         : 'Hệ thống đang bảo trì khẩn cấp',
                     message: _maintenanceError != null
                         ? 'Không thể xác minh trạng thái hệ thống. Vui lòng thử lại sau.'
-                        : _maintenanceChecking
-                        ? 'Đang xác minh trạng thái hệ thống...'
                         : _maintenanceMessage?.trim().isNotEmpty == true
                         ? _maintenanceMessage!
                         : 'Hệ thống đang bảo trì khẩn cấp',
@@ -549,17 +578,19 @@ class _TerminalLog {
 
 class _AdminTerminalDialog extends StatefulWidget {
   const _AdminTerminalDialog({
-    required this.isDevLoader,
     required this.cacheClearer,
     required this.adminRpc,
     required this.onForceLogout,
+    required this.brandingImageUploader,
+    required this.brandingImagePicker,
   });
 
-  final AdminDevFlagLoader isDevLoader;
   final AdminCacheClearer cacheClearer;
   final Future<Map<String, dynamic>> Function(String, Map<String, dynamic>)
   adminRpc;
   final Future<void> Function() onForceLogout;
+  final AppBrandingImageUploader brandingImageUploader;
+  final AppBrandingImagePicker brandingImagePicker;
 
   @override
   State<_AdminTerminalDialog> createState() => _AdminTerminalDialogState();
@@ -575,18 +606,17 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
       _TerminalLogType.system,
     ),
     const _TerminalLog(
-      'Verifying Supabase is_dev flag...',
-      _TerminalLogType.system,
+      'Access Granted · is_dev=true',
+      _TerminalLogType.success,
     ),
   ];
-  bool _authorized = false;
-  bool _checkingIsDev = true;
+  final bool _authorized = true;
   bool _executing = false;
 
   @override
   void initState() {
     super.initState();
-    _authorize();
+    _requestCommandFocus();
   }
 
   @override
@@ -595,40 +625,6 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
     _commandFocusNode.dispose();
     _logController.dispose();
     super.dispose();
-  }
-
-  Future<void> _authorize() async {
-    try {
-      final isDev = await widget.isDevLoader();
-      if (!mounted) return;
-      final authorized = isDev == true;
-      setState(() {
-        _authorized = authorized;
-        _checkingIsDev = false;
-        _logs.add(
-          _TerminalLog(
-            authorized
-                ? 'Access Granted · is_dev=true'
-                : 'Access Denied · is_dev=true required',
-            authorized ? _TerminalLogType.success : _TerminalLogType.error,
-          ),
-        );
-      });
-      _scrollToLatest();
-      if (authorized) _requestCommandFocus();
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _checkingIsDev = false;
-        _logs.add(
-          _TerminalLog(
-            'is_dev verification failed: $error',
-            _TerminalLogType.error,
-          ),
-        );
-      });
-      _scrollToLatest();
-    }
   }
 
   void _scrollToLatest() {
@@ -642,7 +638,6 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted ||
           !_authorized ||
-          _checkingIsDev ||
           _executing ||
           ModalRoute.of(context)?.isCurrent != true) {
         return;
@@ -664,7 +659,7 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
       _requestCommandFocus();
       return;
     }
-    if (_executing || _checkingIsDev) return;
+    if (_executing) return;
 
     final command = input.split(RegExp(r'\s+')).first.toLowerCase();
     _appendLog('> $input', _TerminalLogType.command);
@@ -680,7 +675,7 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
     switch (command) {
       case 'help':
         _appendLog(
-          'help  clear  clear-cache  ban  unban  give  shutdown database  maintenance on|off  force-logout  exit',
+          'help  clear  clear-cache  upload-visuals  ban  unban  give  shutdown database  maintenance on|off  force-logout  exit',
           _TerminalLogType.system,
         );
         _appendLog(
@@ -708,6 +703,9 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
         } finally {
           if (mounted) setState(() => _executing = false);
         }
+        break;
+      case 'upload-visuals':
+        await _uploadVisuals();
         break;
       case 'ban':
         await _runBan(input);
@@ -763,6 +761,81 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
         break;
     }
     _requestCommandFocus();
+  }
+
+  Future<void> _uploadVisuals() async {
+    final slot = await showDialog<BrandingAssetSlot>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1F1F1F),
+        title: const Text(
+          'Upload app visuals',
+          style: TextStyle(color: Color(0xFFF2F2F2)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final slot in BrandingAssetSlot.values)
+              ListTile(
+                leading: Icon(
+                  slot == BrandingAssetSlot.loginBackground
+                      ? Icons.login_rounded
+                      : Icons.dashboard_customize_rounded,
+                  color: const Color(0xFF9CDCFE),
+                ),
+                title: Text(
+                  slot.label,
+                  style: const TextStyle(color: Color(0xFFF2F2F2)),
+                ),
+                onTap: () => Navigator.of(dialogContext).pop(slot),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (slot == null) return;
+
+    setState(() => _executing = true);
+    try {
+      final file = await widget.brandingImagePicker();
+      if (!mounted) return;
+      if (file == null) {
+        _appendLog('Image selection cancelled.', _TerminalLogType.system);
+        return;
+      }
+
+      final previous = AppBrandingAssets.current.value[slot];
+      setState(() => _executing = false);
+      final uploadedUrl = await showDialog<String>(
+        context: context,
+        barrierColor: const Color(0xD900060C),
+        builder: (_) => BrandingImageEditorDialog(
+          slot: slot,
+          file: file,
+          initialSetting: previous ?? const BrandingImageSetting(url: ''),
+          onUpload: (crop) => widget.brandingImageUploader(slot, file, crop),
+        ),
+      );
+      if (!mounted) return;
+      if (uploadedUrl == null) {
+        _appendLog('Image editing cancelled.', _TerminalLogType.system);
+      } else {
+        _appendLog(
+          '${slot.label} image uploaded and published.',
+          _TerminalLogType.success,
+        );
+      }
+    } catch (error) {
+      _appendLog('Image upload failed: $error', _TerminalLogType.error);
+    } finally {
+      if (mounted) setState(() => _executing = false);
+    }
   }
 
   Future<void> _setMaintenance(bool enabled) async {
@@ -981,15 +1054,9 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
           ),
         ),
         Text(
-          _checkingIsDev
-              ? 'AUTH'
-              : _authorized
-              ? 'AUTHORIZED'
-              : 'LOCKED',
+          _authorized ? 'AUTHORIZED' : 'LOCKED',
           style: TextStyle(
-            color: _checkingIsDev
-                ? const Color(0xFFD7BA7D)
-                : _authorized
+            color: _authorized
                 ? const Color(0xFF6A9955)
                 : const Color(0xFFF14C4C),
             fontFamily: 'monospace',
@@ -998,6 +1065,24 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
           ),
         ),
         const SizedBox(width: 8),
+        if (_authorized)
+          TextButton.icon(
+            key: const Key('admin-upload-visuals'),
+            onPressed: _executing ? null : _uploadVisuals,
+            icon: const Icon(Icons.image_outlined, size: 15),
+            label: const Text('VISUALS'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF9CDCFE),
+              visualDensity: VisualDensity.compact,
+              textStyle: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+        const SizedBox(width: 4),
         IconButton(
           tooltip: 'Close terminal',
           onPressed: () => Navigator.of(context).pop(),
@@ -1056,7 +1141,7 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
           child: TextField(
             controller: _commandController,
             focusNode: _commandFocusNode,
-            enabled: _authorized && !_checkingIsDev && !_executing,
+            enabled: _authorized && !_executing,
             onSubmitted: _runCommand,
             textInputAction: TextInputAction.send,
             style: const TextStyle(
@@ -1084,4 +1169,158 @@ class _AdminTerminalDialogState extends State<_AdminTerminalDialog> {
       ],
     ),
   );
+}
+
+class _AdminGlowAction {
+  const _AdminGlowAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.command,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String command;
+  final Color color;
+}
+
+class _AdminGlowActionGrid extends StatelessWidget {
+  const _AdminGlowActionGrid({
+    required this.actions,
+    required this.enabled,
+    required this.onAction,
+  });
+
+  final List<_AdminGlowAction> actions;
+  final bool enabled;
+  final ValueChanged<String> onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette =
+        Theme.of(context).extension<AstatinePalette>() ?? AstatinePalette.dark;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 500;
+        final gap = compact ? 8.0 : 10.0;
+        final cardHeight = compact ? 74.0 : 86.0;
+        return Semantics(
+          container: true,
+          label: 'Admin quick actions',
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: gap,
+              mainAxisSpacing: gap,
+              mainAxisExtent: cardHeight,
+            ),
+            itemCount: actions.length,
+            itemBuilder: (context, index) {
+              return _AdminGlowActionCard(
+                action: actions[index],
+                enabled: enabled,
+                palette: palette,
+                onPressed: () => onAction(actions[index].command),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AdminGlowActionCard extends StatelessWidget {
+  const _AdminGlowActionCard({
+    required this.action,
+    required this.enabled,
+    required this.palette,
+    required this.onPressed,
+  });
+
+  final _AdminGlowAction action;
+  final bool enabled;
+  final AstatinePalette palette;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: '${action.title}. ${action.subtitle}',
+      hint: enabled ? 'Runs ${action.command}' : 'Unavailable',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: palette.border),
+        ),
+        child: Material(
+          color: palette.card,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            onTap: enabled ? onPressed : null,
+            hoverColor: action.color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: action.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(action.icon, color: action.color, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          action.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: palette.primaryText,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          action.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: palette.secondaryText,
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_outward_rounded,
+                    color: palette.secondaryText,
+                    size: 14,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

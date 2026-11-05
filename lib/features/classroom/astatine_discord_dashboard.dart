@@ -9,6 +9,7 @@ import 'package:astatine_dashboard/core/localization/app_localizations.dart';
 import 'package:astatine_dashboard/core/notifications/toast_service.dart';
 import 'package:astatine_dashboard/core/ui/discord_ui.dart';
 import 'package:astatine_dashboard/core/ui/glide_select.dart';
+import 'package:astatine_dashboard/core/ui/loading_skeleton.dart';
 import 'package:astatine_dashboard/features/profile/user_profile_avatar.dart';
 import 'package:astatine_dashboard/features/profile/subscription_name_effect.dart';
 
@@ -927,8 +928,8 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
                         VerticalDivider(width: 1, color: _border),
                       ],
                       Expanded(
-                        child: _loading && _memberships.isEmpty
-                            ? const Center(child: CircularProgressIndicator())
+                        child: _loading
+                            ? const ChatMessagesSkeleton()
                             : _loadError != null
                             ? _buildLoadError()
                             : _classroomId == null
@@ -1053,7 +1054,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
                       vertical: 12,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   icon: const Icon(Icons.event_seat_rounded, size: 19),
@@ -1068,7 +1069,9 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
           Divider(height: 1, color: _border),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                ? const ClassroomChannelsSkeleton(
+                    label: 'Đang tải danh sách kênh',
+                  )
                 : _channels.isEmpty && _seatingChatGroups.isEmpty
                 ? Center(
                     child: Text(
@@ -1179,24 +1182,27 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
         ),
       ),
       for (final column in columns)
-        ListTile(
-          key: Key('seating-column-chat-${column['id']}'),
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          leading: Icon(Icons.groups_2_outlined, size: 17, color: _muted),
-          title: Text(
-            column['name']?.toString() ?? 'Nhóm cột',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: _text, fontSize: 11),
-          ),
-          onTap: () => Navigator.of(context).push<void>(
-            MaterialPageRoute<void>(
-              builder: (_) => ChatScreen(
-                classroomGroupId: column['id'].toString(),
-                classroomGroupClassroomId: _classroomId,
-                channelName: column['name']?.toString() ?? 'Nhóm cột',
-                languageCode: _languageCode,
+        Material(
+          color: Colors.transparent,
+          child: ListTile(
+            key: Key('seating-column-chat-${column['id']}'),
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            leading: Icon(Icons.groups_2_outlined, size: 17, color: _muted),
+            title: Text(
+              column['name']?.toString() ?? 'Nhóm cột',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: _text, fontSize: 11),
+            ),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => ChatScreen(
+                  classroomGroupId: column['id'].toString(),
+                  classroomGroupClassroomId: _classroomId,
+                  channelName: column['name']?.toString() ?? 'Nhóm cột',
+                  languageCode: _languageCode,
+                ),
               ),
             ),
           ),
@@ -1313,7 +1319,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
         duration: const Duration(milliseconds: 140),
         decoration: BoxDecoration(
           color: active ? _accent.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: active
                 ? _accent.withValues(alpha: 0.28)
@@ -1322,10 +1328,10 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(8),
           child: InkWell(
             key: Key('discord-channel-$id'),
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(8),
             onTap: () => _selectChannel(id),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
@@ -1509,7 +1515,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
                         ),
                         decoration: BoxDecoration(
                           color: _roleColor(senderRole).withValues(alpha: 0.16),
-                          borderRadius: BorderRadius.circular(5),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: _roleColor(senderRole)
                                 .withValues(alpha: 0.55),
@@ -1563,9 +1569,9 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
                           ? _accent.withValues(alpha: 0.08)
                           : _panel.withValues(alpha: 0.78),
                       borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(12),
-                        bottomLeft: Radius.circular(12),
-                        bottomRight: Radius.circular(12),
+                        topRight: Radius.circular(8),
+                        bottomLeft: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
                       ),
                       border: Border.all(
                         color: mine
@@ -1629,7 +1635,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: _card,
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _border),
       ),
       child: Row(
@@ -1639,7 +1645,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
             height: 42,
             decoration: BoxDecoration(
               color: const Color(0xFFEB5757).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.picture_as_pdf_outlined,
@@ -1703,7 +1709,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: _background,
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         border: Border(left: BorderSide(color: _accent, width: 3)),
       ),
       child: Column(
@@ -2513,7 +2519,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
                 _background.withValues(alpha: 0.9),
               ],
             ),
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: _accent.withValues(alpha: 0.25)),
           ),
           child: Column(
@@ -2524,7 +2530,7 @@ class _AstatineDiscordDashboardState extends State<AstatineDiscordDashboard> {
                 height: 58,
                 decoration: BoxDecoration(
                   color: _accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: _accent.withValues(alpha: 0.35)),
                 ),
                 child: Icon(Icons.hub_outlined, color: _accent, size: 27),

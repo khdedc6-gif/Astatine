@@ -7,17 +7,45 @@ import 'package:astatine_dashboard/core/theme/app_theme.dart';
 
 import 'ai_service.dart';
 
+typedef AssignmentDraftRequest = Future<String> Function(String request);
+
+bool isAssignmentDraftRequest(String message) {
+  final normalized = message.toLowerCase();
+  final hasVietnameseDraftIntent = ['soạn', 'ra đề'].any(normalized.contains);
+  if (hasVietnameseDraftIntent) return true;
+
+  final asksToGenerate =
+      RegExp(r'\b(create|generate|draft|make|write)\b').hasMatch(normalized) ||
+      ['tạo', 'viết'].any(normalized.contains);
+  final asksForQuestions =
+      RegExp(r'\b(questions?|quiz|assignment)\b').hasMatch(normalized) ||
+      [
+        'câu hỏi',
+        'câu trắc nghiệm',
+        'câu ',
+        'câu.',
+        'câu,',
+        'bài tập',
+        'đề',
+      ].any(normalized.contains);
+  return asksToGenerate && asksForQuestions;
+}
+
 class GeminiAssistantBubble extends StatefulWidget {
   const GeminiAssistantBubble({
     super.key,
     required this.isVietnamese,
     this.languageCode,
     required this.interfaceName,
+    this.maxPanelHeight,
+    this.onAssignmentDraftRequest,
   });
 
   final bool isVietnamese;
   final String? languageCode;
   final String interfaceName;
+  final double? maxPanelHeight;
+  final AssignmentDraftRequest? onAssignmentDraftRequest;
 
   @override
   State<GeminiAssistantBubble> createState() => _GeminiAssistantBubbleState();
@@ -51,6 +79,9 @@ class _GeminiAssistantBubbleState extends State<GeminiAssistantBubble> {
   Future<void> _send() async {
     final question = _controller.text.trim();
     if (question.isEmpty || _isThinking) return;
+    final isDraftRequest =
+        widget.onAssignmentDraftRequest != null &&
+        isAssignmentDraftRequest(question);
     setState(() {
       _messages.add(_AssistantMessage(text: question, isUser: true));
       _controller.clear();
@@ -60,17 +91,43 @@ class _GeminiAssistantBubbleState extends State<GeminiAssistantBubble> {
 
     String answer;
     try {
-      answer = await LabAIService.askAssistant(
-        userQuestion: _languageCode == 'zh'
-            ? '请使用简体中文回答：$question'
-            : question,
-        interfaceName: widget.interfaceName,
-      );
-    } catch (_) {
-      answer = _text(
-        'The AI service is temporarily unavailable. Please try again later.',
-        'Dịch vụ AI hiện không khả dụng. Vui lòng thử lại sau.',
-      );
+      answer = isDraftRequest
+          ? await widget.onAssignmentDraftRequest!(question)
+          : await LabAIService.askAssistant(
+              userQuestion: _languageCode == 'zh'
+                  ? '请使用简体中文回答：$question'
+                  : question,
+              interfaceName: widget.interfaceName,
+            );
+    } catch (error) {
+      final errorText = error.toString().toLowerCase();
+      final quotaReached =
+          errorText.contains('quota') ||
+          errorText.contains('resource_exhausted') ||
+          errorText.contains('429');
+      final responseTruncated =
+          errorText.contains('response_truncated') ||
+          errorText.contains('max_tokens') ||
+          errorText.contains('truncated');
+      answer = quotaReached
+          ? _text(
+              'Gemini has reached today\'s free-tier limit. Please try again after the quota resets.',
+              'Gemini đã hết hạn mức miễn phí hôm nay. Vui lòng thử lại sau khi quota được đặt lại.',
+            )
+          : responseTruncated
+          ? _text(
+              'Câu trả lời bị giới hạn độ dài. Hãy yêu cầu ngắn hơn hoặc chia nhỏ yêu cầu.',
+              'The response exceeded the output limit. Ask for a shorter answer or split the request.',
+            )
+          : isDraftRequest
+          ? _text(
+              'Không thể soạn bản nháp lúc này. Hãy thử lại sau.',
+              'Could not draft the questions right now. Please try again later.',
+            )
+          : _text(
+              'The AI service is temporarily unavailable. Please try again later.',
+              'Dịch vụ AI hiện không khả dụng. Vui lòng thử lại sau.',
+            );
     }
     if (!mounted) return;
     setState(() {
@@ -102,12 +159,15 @@ class _GeminiAssistantBubbleState extends State<GeminiAssistantBubble> {
         if (_isOpen) ...[
           Container(
             width: math.min(380, screenSize.width - 32),
-            height: math.min(500, screenSize.height * 0.68),
+            height: math.min(
+              math.min(500, screenSize.height * 0.68),
+              widget.maxPanelHeight ?? double.infinity,
+            ),
             margin: const EdgeInsets.only(bottom: 12),
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: _palette.card,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: _palette.border),
               boxShadow: [
                 BoxShadow(
@@ -207,7 +267,7 @@ class _GeminiAssistantBubbleState extends State<GeminiAssistantBubble> {
                                   color: message.isUser
                                       ? _palette.accent.withValues(alpha: 0.18)
                                       : _palette.input,
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   message.text,
@@ -227,19 +287,23 @@ class _GeminiAssistantBubbleState extends State<GeminiAssistantBubble> {
                           key: const Key('floating-gemini-input'),
                           controller: _controller,
                           maxLength: LabAIService.maxPromptCharacters,
-                          buildCounter:
-                              (
-                                context, {
-                                required currentLength,
-                                required isFocused,
-                                maxLength,
-                              }) => null,
+                          buildCounter: (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
                           minLines: 1,
                           maxLines: 3,
                           onSubmitted: (_) => _send(),
                           style: TextStyle(color: _palette.primaryText),
                           decoration: InputDecoration(
-                            hintText: _text('Ask Gemini...', 'Hỏi Gemini...'),
+                            hintText: widget.onAssignmentDraftRequest == null
+                                ? _text('Ask Gemini...', 'Hỏi Gemini...')
+                                : _text(
+                                    'Ask or request a quiz draft...',
+                                    'Hỏi hoặc yêu cầu soạn câu hỏi...',
+                                  ),
                             filled: true,
                             fillColor: _palette.input,
                             contentPadding: const EdgeInsets.symmetric(
@@ -247,7 +311,7 @@ class _GeminiAssistantBubbleState extends State<GeminiAssistantBubble> {
                               vertical: 10,
                             ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(9),
+                              borderRadius: BorderRadius.circular(8),
                               borderSide: BorderSide.none,
                             ),
                           ),

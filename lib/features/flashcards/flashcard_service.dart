@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'flashcard_models.dart';
 
 class FlashcardService {
@@ -14,7 +16,9 @@ class FlashcardService {
     }
     try {
       final List<dynamic> decoded = jsonDecode(rawJson);
-      return decoded.map((d) => FlashcardDeck.fromJson(d as Map<String, dynamic>)).toList();
+      return decoded
+          .map((d) => FlashcardDeck.fromJson(d as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       return _getInitialDecks();
     }
@@ -60,13 +64,22 @@ class FlashcardService {
       String front = line;
       String back = '';
       String? hint;
+      var parsedMode = 1;
 
       if (line.contains(delimiter)) {
         final parts = line.split(delimiter);
         front = parts[0].trim();
         back = parts.length > 1 ? parts[1].trim() : '';
-        if (parts.length > 2) {
+        final modeValue = parts.length > 2
+            ? int.tryParse(parts[2].trim())
+            : null;
+        if (modeValue == 1 || modeValue == 2) {
+          parsedMode = modeValue!;
+        } else if (parts.length > 2) {
           hint = parts[2].trim();
+        }
+        if (parts.length > 3) {
+          hint = parts[3].trim();
         }
       } else if (line.contains(':')) {
         final parts = line.split(':');
@@ -75,12 +88,15 @@ class FlashcardService {
       }
 
       if (front.isNotEmpty && back.isNotEmpty) {
-        cards.add(Flashcard(
-          id: '${DateTime.now().microsecondsSinceEpoch}_${cards.length}',
-          front: front,
-          back: back,
-          hint: hint,
-        ));
+        cards.add(
+          Flashcard(
+            id: '${DateTime.now().microsecondsSinceEpoch}_${cards.length}',
+            front: front,
+            back: back,
+            hint: hint,
+            mode: parsedMode == 2 ? 2 : 1,
+          ),
+        );
       }
     }
 
@@ -122,31 +138,6 @@ class FlashcardService {
   }
 
   static List<FlashcardDeck> _getInitialDecks() {
-    return [
-      FlashcardDeck(
-        id: 'deck_chem_1',
-        title: 'Bảng tuần hoàn & Nguyên tố Hóa học',
-        description: 'Các nguyên tố cơ bản, số hiệu nguyên tử và ký hiệu hóa học.',
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        cards: [
-          Flashcard(id: 'c1', front: 'Hydro (H)', back: 'Số hiệu: 1, Nhóm 1', hint: 'Khí nhẹ nhất vũ trụ'),
-          Flashcard(id: 'c2', front: 'Oxi (O)', back: 'Số hiệu: 8, Nhóm 16', hint: 'Duy trì sự cháy và hô hấp'),
-          Flashcard(id: 'c3', front: 'Natri (Na)', back: 'Số hiệu: 11, Nhóm 1', hint: 'Kim loại kiềm, phản ứng mạnh với nước'),
-          Flashcard(id: 'c4', front: 'Sắt (Fe)', back: 'Số hiệu: 26, Nhóm 8', hint: 'Kim loại chuyển tiếp phổ biến làm vật liệu'),
-          Flashcard(id: 'c5', front: 'Vàng (Au)', back: 'Số hiệu: 79, Nhóm 11', hint: 'Kim loại quý, dẫn điện tốt'),
-        ],
-      ),
-      FlashcardDeck(
-        id: 'deck_math_1',
-        title: 'Công thức Toán học & Hình học',
-        description: 'Các định lý và công thức tính diện tích, thể tích quan trọng.',
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        cards: [
-          Flashcard(id: 'm1', front: 'Diện tích hình tròn', back: 'S = π * r²', hint: 'r là bán kính'),
-          Flashcard(id: 'm2', front: 'Thể tích hình cầu', back: 'V = (4/3) * π * r³', hint: 'Liên quan đến lập phương bán kính'),
-          Flashcard(id: 'm3', front: 'Định lý Pythagoras', back: 'a² + b² = c²', hint: 'Áp dụng cho tam giác vuông'),
-        ],
-      ),
-    ];
+    return [];
   }
 }

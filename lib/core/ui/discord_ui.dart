@@ -172,7 +172,7 @@ class DiscordCheckbox extends StatelessWidget {
           height: 20,
           decoration: BoxDecoration(
             color: value ? colors.accent : colors.card,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: value ? colors.accent : colors.border),
           ),
           alignment: Alignment.center,
@@ -211,7 +211,7 @@ class DiscordSwitch extends StatelessWidget {
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             color: value ? colors.accent : colors.card,
-            borderRadius: BorderRadius.circular(11),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: AnimatedAlign(
             duration: const Duration(milliseconds: 180),

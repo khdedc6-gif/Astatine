@@ -123,10 +123,7 @@ class _BlueCursorOverlayState extends State<BlueCursorOverlay> {
 }
 
 class _BlueCursorPainter extends CustomPainter {
-  _BlueCursorPainter({
-    required this.pressed,
-    required this.accent,
-  });
+  _BlueCursorPainter({required this.pressed, required this.accent});
 
   final bool pressed;
   final Color accent;
@@ -153,8 +150,7 @@ class _BlueCursorPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _BlueCursorPainter oldDelegate) =>
-      oldDelegate.accent != accent ||
-      oldDelegate.pressed != pressed;
+      oldDelegate.accent != accent || oldDelegate.pressed != pressed;
 }
 
 class HoverLift extends StatefulWidget {
@@ -185,17 +181,22 @@ class PressScale extends StatefulWidget {
 class _PressScaleState extends State<PressScale> {
   bool _pressed = false;
 
+  void _setPressed(bool value) {
+    if (!mounted || _pressed == value) return;
+    setState(() => _pressed = value);
+  }
+
   @override
   Widget build(BuildContext context) => Listener(
     behavior: HitTestBehavior.translucent,
     onPointerDown: (event) {
-      setState(() => _pressed = true);
+      _setPressed(true);
       if (!kIsWeb && event.kind == PointerDeviceKind.touch) {
         unawaited(HapticFeedback.selectionClick());
       }
     },
-    onPointerUp: (_) => setState(() => _pressed = false),
-    onPointerCancel: (_) => setState(() => _pressed = false),
+    onPointerUp: (_) => _setPressed(false),
+    onPointerCancel: (_) => _setPressed(false),
     child: AnimatedScale(
       scale: _pressed ? 0.96 : 1,
       duration: Duration(milliseconds: _pressed ? 100 : 240),
@@ -208,12 +209,17 @@ class _PressScaleState extends State<PressScale> {
 class _HoverLiftState extends State<HoverLift> {
   bool _hovered = false;
 
+  void _setHovered(bool value) {
+    if (!mounted || _hovered == value) return;
+    setState(() => _hovered = value);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.none,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
+      onEnter: (_) => _setHovered(true),
+      onExit: (_) => _setHovered(false),
       child: AnimatedScale(
         scale: _hovered ? widget.scale : 1,
         duration: widget.duration,

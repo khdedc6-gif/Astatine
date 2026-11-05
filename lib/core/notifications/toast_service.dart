@@ -237,7 +237,7 @@ class _ToastOverlayState extends State<_ToastOverlay>
             constraints: const BoxConstraints(maxWidth: 380, minWidth: 280),
             decoration: BoxDecoration(
               color: const Color(0xFF181A22),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _accentColor.withValues(alpha: 0.35)),
               boxShadow: [
                 BoxShadow(
@@ -248,7 +248,7 @@ class _ToastOverlayState extends State<_ToastOverlay>
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               child: IntrinsicHeight(
                 child: Row(
                   children: [

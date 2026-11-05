@@ -29,10 +29,8 @@ class InviteDetailsCard extends StatelessWidget {
     this.onAccept,
   });
 
-  String _text(String english) => AppLocalizations.translateInline(
-    english,
-    languageCode: languageCode,
-  );
+  String _text(String english) =>
+      AppLocalizations.translateInline(english, languageCode: languageCode);
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +80,8 @@ class InviteDetailsCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  _text('Invited by {name}').replaceFirst('{name}', inviterName),
+                  _text('Invited by {name}')
+                      .replaceFirst('{name}', inviterName),
                   style: TextStyle(
                     color: palette.primaryText,
                     fontSize: compact ? 12 : 14,
@@ -100,10 +99,8 @@ class InviteDetailsCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                _text('Total Members: {count}').replaceFirst(
-                  '{count}',
-                  '$totalMembers',
-                ),
+                _text('Total Members: {count}')
+                    .replaceFirst('{count}', '$totalMembers'),
                 style: TextStyle(
                   color: accentBlue,
                   fontSize: compact ? 11 : 13,
@@ -119,7 +116,7 @@ class InviteDetailsCard extends StatelessWidget {
                 padding: EdgeInsets.all(compact ? 10 : 12),
                 decoration: BoxDecoration(
                   color: accentBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: accentBlue.withValues(alpha: 0.25)),
                 ),
                 child: Icon(
@@ -159,7 +156,7 @@ class InviteDetailsCard extends StatelessWidget {
             padding: EdgeInsets.all(contentPadding),
             decoration: BoxDecoration(
               color: innerBoxColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: palette.border),
             ),
             child: Column(
@@ -175,10 +172,8 @@ class InviteDetailsCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _text('Deadline: {deadline}').replaceFirst(
-                          '{deadline}',
-                          deadline,
-                        ),
+                        _text('Deadline: {deadline}')
+                            .replaceFirst('{deadline}', deadline),
                         style: TextStyle(
                           color: palette.secondaryText,
                           fontSize: compact ? 13 : 14,
@@ -202,10 +197,8 @@ class InviteDetailsCard extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _text('Your Task: {task}').replaceFirst(
-                          '{task}',
-                          taskDescription,
-                        ),
+                        _text('Your Task: {task}')
+                            .replaceFirst('{task}', taskDescription),
                         style: TextStyle(
                           color: palette.secondaryText,
                           fontSize: compact ? 13 : 14,

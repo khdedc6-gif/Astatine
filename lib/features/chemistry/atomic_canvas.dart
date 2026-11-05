@@ -337,64 +337,66 @@ class AtomicCanvasState extends State<AtomicCanvas>
               minScale: 0.45,
               maxScale: 2.6,
               boundaryMargin: const EdgeInsets.all(420),
-              child: SizedBox(
-                key: _surfaceKey,
-                width: _canvasSize.width,
-                height: _canvasSize.height,
-                child: DragTarget<ChemicalElement>(
-                  onWillAcceptWithDetails: (_) => true,
-                  onAcceptWithDetails: (details) =>
-                      _acceptElement(details.data, details.offset),
-                  builder: (context, candidates, rejected) => Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Positioned.fill(child: _CanvasGrid()),
-                      Positioned.fill(
-                        child: AnimatedBuilder(
-                          animation: Listenable.merge([
-                            _bonds,
-                            _invalidAtomIds,
-                            _packages,
-                            _packagePulse,
-                          ]),
-                          builder: (context, _) => CustomPaint(
-                            painter: _BondPainter(
-                              atoms: atoms,
-                              bonds: _bonds.value,
-                              invalidAtomIds: _invalidAtomIds.value,
-                              packages: _packages.value,
-                              packagePulse: _packagePulse.value,
-                              accent: widget.accent,
+              child: RepaintBoundary(
+                child: SizedBox(
+                  key: _surfaceKey,
+                  width: _canvasSize.width,
+                  height: _canvasSize.height,
+                  child: DragTarget<ChemicalElement>(
+                    onWillAcceptWithDetails: (_) => true,
+                    onAcceptWithDetails: (details) =>
+                        _acceptElement(details.data, details.offset),
+                    builder: (context, candidates, rejected) => Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Positioned.fill(child: _CanvasGrid()),
+                        Positioned.fill(
+                          child: AnimatedBuilder(
+                            animation: Listenable.merge([
+                              _bonds,
+                              _invalidAtomIds,
+                              _packages,
+                              _packagePulse,
+                            ]),
+                            builder: (context, _) => CustomPaint(
+                              painter: _BondPainter(
+                                atoms: atoms,
+                                bonds: _bonds.value,
+                                invalidAtomIds: _invalidAtomIds.value,
+                                packages: _packages.value,
+                                packagePulse: _packagePulse.value,
+                                accent: widget.accent,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      for (final atom in atoms)
-                        KeyedSubtree(
-                          key: ValueKey(atom.id),
-                          child: _AtomPositionLayer(
-                            atom: atom,
-                            position: _positions[atom.id]!,
-                            size: _atomSize(atom),
-                            charge: _charges[atom.id]!,
-                            neutronRevision: _neutronRevisions[atom.id]!,
-                            isInvalid: _invalidStates[atom.id]!,
-                            isSelected: _selectedId == atom.id,
-                            onSelect: () {
-                              if (_selectedId != atom.id) {
-                                setState(() => _selectedId = atom.id);
-                              }
-                            },
-                            onPanDelta: (delta) => _moveAtom(atom, delta),
+                        for (final atom in atoms)
+                          KeyedSubtree(
+                            key: ValueKey(atom.id),
+                            child: _AtomPositionLayer(
+                              atom: atom,
+                              position: _positions[atom.id]!,
+                              size: _atomSize(atom),
+                              charge: _charges[atom.id]!,
+                              neutronRevision: _neutronRevisions[atom.id]!,
+                              isInvalid: _invalidStates[atom.id]!,
+                              isSelected: _selectedId == atom.id,
+                              onSelect: () {
+                                if (_selectedId != atom.id) {
+                                  setState(() => _selectedId = atom.id);
+                                }
+                              },
+                              onPanDelta: (delta) => _moveAtom(atom, delta),
+                            ),
                           ),
-                        ),
-                      if (atoms.isEmpty)
-                        const Positioned.fill(
-                          child: IgnorePointer(
-                            child: Center(child: _EmptyCanvasHint()),
+                        if (atoms.isEmpty)
+                          const Positioned.fill(
+                            child: IgnorePointer(
+                              child: Center(child: _EmptyCanvasHint()),
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -561,7 +563,7 @@ class _BondPainter extends CustomPainter {
             ? const MaskFilter.blur(BlurStyle.normal, 7)
             : null;
       canvas.drawRRect(
-        RRect.fromRectAndRadius(bounds, const Radius.circular(18)),
+        RRect.fromRectAndRadius(bounds, const Radius.circular(16)),
         outline,
       );
       final label = TextPainter(
@@ -662,7 +664,7 @@ class _EmptyCanvasHint extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 17),
     decoration: BoxDecoration(
       color: const Color(0xCC101D28),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       border: Border.all(color: const Color(0x3348D7E7)),
     ),
     child: const Column(
@@ -702,7 +704,7 @@ class _CanvasControls extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
     decoration: BoxDecoration(
       color: const Color(0xE8111D28),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: accent.withValues(alpha: 0.24)),
     ),
     child: Row(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:gap/gap.dart';
 
 import 'package:astatine_dashboard/core/localization/app_localizations.dart';
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
+import 'package:astatine_dashboard/features/dashboard/workspace_app_dock.dart';
 
 class WorkspaceDesktopScreen extends StatefulWidget {
   const WorkspaceDesktopScreen({
@@ -32,15 +34,12 @@ class _WorkspaceDesktopScreenState extends State<WorkspaceDesktopScreen> {
   bool _isControlCenterOpen = false;
   bool _isFocusMode = false;
   bool _notificationsEnabled = true;
-  bool _isWindowMaximized = false;
   String? _activeApp;
   final Set<String> _openApps = {};
+  final Map<String, _WorkspaceWindowState> _windows = {};
+  final List<String> _windowOrder = [];
   late DateTime _now = DateTime.now();
   Timer? _clockTimer;
-
-  Duration get _motionDuration => MediaQuery.disableAnimationsOf(context)
-      ? Duration.zero
-      : const Duration(milliseconds: 220);
 
   @override
   void initState() {
@@ -89,76 +88,119 @@ class _WorkspaceDesktopScreenState extends State<WorkspaceDesktopScreen> {
                       left: 18,
                       top: 112,
                       bottom: 92,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            _WorkspaceShortcut(
-                              key: const Key('workspace-app-flashcard'),
-                              label: 'Flashcards',
-                              icon: Icons.style_rounded,
-                              color: const Color(0xFFEA580C),
-                              onTap: () => _openApp('flashcard'),
-                            ),
-                            const Gap(14),
-                            _WorkspaceShortcut(
-                              key: const Key('workspace-app-code'),
-                              label: 'Code Studio',
-                              icon: Icons.code_rounded,
-                              color: const Color(0xFF4F46E5),
-                              onTap: () => _openApp('code'),
-                            ),
-                            const Gap(14),
-                            _WorkspaceShortcut(
-                              key: const Key('workspace-app-browser'),
-                              label: 'Browser',
-                              icon: Icons.language_rounded,
-                              color: const Color(0xFF0F766E),
-                              onTap: () => _openApp('browser'),
-                            ),
-                          ],
+                      child: SizedBox(
+                        width: 204,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 8,
+                                  bottom: 8,
+                                ),
+                                child: Text(
+                                  switch (widget.strings.languageCode) {
+                                    'vi' => 'ỨNG DỤNG',
+                                    'zh' => '应用',
+                                    _ => 'APPS',
+                                  },
+                                  style: TextStyle(
+                                    color: palette.secondaryText,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.1,
+                                  ),
+                                ),
+                              ),
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
+                                children: [
+                                  _WorkspaceShortcut(
+                                    key: const Key('workspace-app-files'),
+                                    label:
+                                        switch (widget.strings.languageCode) {
+                                          'vi' => 'Tệp',
+                                          'zh' => '文件',
+                                          _ => 'Files',
+                                        },
+                                    icon: Icons.folder_rounded,
+                                    color: const Color(0xFFCA8A04),
+                                    onTap: () => _openApp('files'),
+                                  ),
+                                  _WorkspaceShortcut(
+                                    key: const Key('workspace-app-settings'),
+                                    label:
+                                        switch (widget.strings.languageCode) {
+                                          'vi' => 'Cài đặt',
+                                          'zh' => '设置',
+                                          _ => 'Settings',
+                                        },
+                                    icon: Icons.settings_rounded,
+                                    color: const Color(0xFF64748B),
+                                    onTap: () => _openApp('settings'),
+                                  ),
+                                  _WorkspaceShortcut(
+                                    key: const Key('workspace-app-browser'),
+                                    label: 'Browser',
+                                    icon: Icons.language_rounded,
+                                    color: const Color(0xFF0F766E),
+                                    onTap: () => _openApp('browser'),
+                                  ),
+                                  _WorkspaceShortcut(
+                                    key: const Key('workspace-app-panel'),
+                                    label: 'Panel',
+                                    icon: Icons.tune_rounded,
+                                    color: const Color(0xFF2563EB),
+                                    onTap: () => setState(() {
+                                      _isControlCenterOpen = true;
+                                      _isStartMenuOpen = false;
+                                    }),
+                                  ),
+                                  _WorkspaceShortcut(
+                                    key: const Key('workspace-app-astatine'),
+                                    label: 'Astatine',
+                                    icon: Icons.science_rounded,
+                                    color: const Color(0xFF7C3AED),
+                                    onTap: widget.onExitWorkspace,
+                                  ),
+                                  _WorkspaceShortcut(
+                                    key: const Key('workspace-app-flashcard'),
+                                    label: 'Flashcards',
+                                    icon: Icons.style_rounded,
+                                    color: const Color(0xFFEA580C),
+                                    onTap: () => _openApp('flashcard'),
+                                  ),
+                                  _WorkspaceShortcut(
+                                    key: const Key('workspace-app-code'),
+                                    label: 'Code Studio',
+                                    icon: Icons.code_rounded,
+                                    color: const Color(0xFF4F46E5),
+                                    onTap: () => _openApp('code'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     Positioned.fill(
                       bottom: 82,
-                      child: AnimatedSwitcher(
-                        duration: _motionDuration,
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        child: _activeApp == null
-                            ? const IgnorePointer(
-                                key: ValueKey('no-active-workspace-app'),
-                                child: SizedBox.expand(),
-                              )
-                            : Center(
-                                key: ValueKey(_activeApp),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(18),
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      maxWidth: _isWindowMaximized ? 1200 : 760,
-                                      maxHeight: _isWindowMaximized ? 760 : 620,
-                                    ),
-                                    child: _WorkspaceAppWindow(
-                                      appId: _activeApp!,
-                                      maximized: _isWindowMaximized,
-                                      onMaximize: () => setState(
-                                        () => _isWindowMaximized =
-                                            !_isWindowMaximized,
-                                      ),
-                                      onMinimize: () =>
-                                          setState(() => _activeApp = null),
-                                      onClose: () {
-                                        setState(() {
-                                          _openApps.remove(_activeApp);
-                                          _activeApp = null;
-                                          _isWindowMaximized = false;
-                                        });
-                                      },
-                                    ),
-                                  ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => Stack(
+                          key: const Key('workspace-window-area'),
+                          clipBehavior: Clip.none,
+                          children: [
+                            for (final appId in _windowOrder)
+                              if (!_windows[appId]!.minimized)
+                                _buildWorkspaceWindow(
+                                  appId,
+                                  constraints.biggest,
                                 ),
-                              ),
+                          ],
+                        ),
                       ),
                     ),
                     if (_isStartMenuOpen || _isControlCenterOpen)
@@ -241,14 +283,217 @@ class _WorkspaceDesktopScreenState extends State<WorkspaceDesktopScreen> {
   }
 
   void _openApp(String appId) {
+    if (appId == 'panel') {
+      setState(() {
+        _isControlCenterOpen = true;
+        _isStartMenuOpen = false;
+      });
+      return;
+    }
+    if (appId == 'astatine') {
+      widget.onExitWorkspace();
+      return;
+    }
     setState(() {
-      _openApps.add(appId);
+      if (!_windows.containsKey(appId)) {
+        final viewport = MediaQuery.sizeOf(context);
+        final width = (viewport.width - 48).clamp(320.0, 760.0).toDouble();
+        final height = (viewport.height - 210).clamp(260.0, 620.0).toDouble();
+        final left = ((viewport.width - width) / 2 + _windowOrder.length * 24)
+            .clamp(0.0, math.max(0, viewport.width - width - 12));
+        final top = ((viewport.height - height) / 2 + _windowOrder.length * 24)
+            .clamp(0.0, math.max(0, viewport.height - height - 108));
+        _windows[appId] = _WorkspaceWindowState(
+          left: left.toDouble(),
+          top: top.toDouble(),
+          width: width,
+          height: height,
+        );
+        _openApps.add(appId);
+      } else {
+        _windows[appId]!.minimized = false;
+      }
+      _bringWindowToFront(appId);
       _activeApp = appId;
-      _isWindowMaximized = false;
       _isStartMenuOpen = false;
       _isControlCenterOpen = false;
     });
   }
+
+  Widget _buildWorkspaceWindow(String appId, Size bounds) {
+    final window = _windows[appId]!;
+    final left = window.maximized ? 0.0 : window.left;
+    final top = window.maximized ? 0.0 : window.top;
+    final width = window.maximized ? bounds.width : window.width;
+    final height = window.maximized ? bounds.height : window.height;
+
+    return Positioned(
+      key: ValueKey('workspace-window-position-$appId'),
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: Listener(
+        onPointerDown: (_) => _activateWindow(appId),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _WorkspaceAppWindow(
+              key: ValueKey('workspace-window-$appId'),
+              appId: appId,
+              strings: widget.strings,
+              maximized: window.maximized,
+              onMove: (delta) => _moveWindow(appId, delta, bounds),
+              onMaximize: () => _toggleWindowMaximize(appId, bounds),
+              onMinimize: () => _minimizeWindow(appId),
+              onClose: () => _closeWindow(appId),
+            ),
+            if (!window.maximized)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  key: Key('workspace-window-resize-$appId'),
+                  behavior: HitTestBehavior.opaque,
+                  onPanUpdate: (details) =>
+                      _resizeWindow(appId, details.delta, bounds),
+                  child: SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5),
+                        child: Icon(
+                          Icons.drag_handle_rounded,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.onSurface
+                              .withValues(alpha: 0.48),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _bringWindowToFront(String appId) {
+    _windowOrder
+      ..remove(appId)
+      ..add(appId);
+  }
+
+  void _activateWindow(String appId) {
+    if (_activeApp == appId && !_windows[appId]!.minimized) return;
+    setState(() {
+      _windows[appId]!.minimized = false;
+      _activeApp = appId;
+      _bringWindowToFront(appId);
+    });
+  }
+
+  void _moveWindow(String appId, Offset delta, Size bounds) {
+    final window = _windows[appId]!;
+    if (window.maximized) return;
+    setState(() {
+      window.left = (window.left + delta.dx)
+          .clamp(0.0, math.max(0, bounds.width - window.width))
+          .toDouble();
+      window.top = (window.top + delta.dy)
+          .clamp(0.0, math.max(0, bounds.height - 48))
+          .toDouble();
+    });
+  }
+
+  void _resizeWindow(String appId, Offset delta, Size bounds) {
+    final window = _windows[appId]!;
+    final minWidth = math.min(360.0, bounds.width - window.left);
+    final minHeight = math.min(260.0, bounds.height - window.top);
+    setState(() {
+      window.width = (window.width + delta.dx)
+          .clamp(minWidth, math.max(minWidth, bounds.width - window.left))
+          .toDouble();
+      window.height = (window.height + delta.dy)
+          .clamp(minHeight, math.max(minHeight, bounds.height - window.top))
+          .toDouble();
+    });
+  }
+
+  void _toggleWindowMaximize(String appId, Size bounds) {
+    final window = _windows[appId]!;
+    setState(() {
+      if (window.maximized) {
+        final restoreBounds = window.restoreBounds;
+        if (restoreBounds != null) {
+          window
+            ..left = restoreBounds.left
+            ..top = restoreBounds.top
+            ..width = restoreBounds.width
+            ..height = restoreBounds.height;
+        }
+        window.restoreBounds = null;
+        window.maximized = false;
+      } else {
+        window.restoreBounds = Rect.fromLTWH(
+          window.left,
+          window.top,
+          window.width,
+          window.height,
+        );
+        window.maximized = true;
+      }
+      _activeApp = appId;
+      _bringWindowToFront(appId);
+    });
+  }
+
+  void _minimizeWindow(String appId) {
+    setState(() {
+      _windows[appId]!.minimized = true;
+      _activeApp = _topVisibleWindow(excluding: appId);
+    });
+  }
+
+  void _closeWindow(String appId) {
+    setState(() {
+      _windows.remove(appId);
+      _windowOrder.remove(appId);
+      _openApps.remove(appId);
+      if (_activeApp == appId) {
+        _activeApp = _topVisibleWindow();
+      }
+    });
+  }
+
+  String? _topVisibleWindow({String? excluding}) {
+    for (final appId in _windowOrder.reversed) {
+      if (appId != excluding && _windows[appId]?.minimized == false) {
+        return appId;
+      }
+    }
+    return null;
+  }
+}
+
+class _WorkspaceWindowState {
+  _WorkspaceWindowState({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  double left;
+  double top;
+  double width;
+  double height;
+  bool minimized = false;
+  bool maximized = false;
+  Rect? restoreBounds;
 }
 
 class _WorkspaceWallpaper extends StatelessWidget {
@@ -346,10 +591,10 @@ class _WorkspaceShortcut extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.78),
-                  borderRadius: BorderRadius.circular(19),
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: color.withValues(alpha: 0.18),
+                    color: color.withValues(alpha: 0.28),
                     width: 2,
                   ),
                   boxShadow: [
@@ -429,195 +674,91 @@ class _WorkspaceTaskbar extends StatelessWidget {
           AstatinePalette.campus;
       return SafeArea(
         top: false,
-        child: Container(
-          width: double.infinity,
-          height: 68,
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 12),
-          decoration: BoxDecoration(
-            color: palette.card.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: palette.border, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: palette.accent.withValues(alpha: 0.11),
-                blurRadius: 28,
-                offset: const Offset(0, 8),
-              ),
-              BoxShadow(
-                color: palette.accent.withValues(alpha: 0.08),
-                blurRadius: 0,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Tooltip(
-                message: strings.workspaceStartMenu,
-                child: IconButton(
-                  key: const Key('workspace-start-button'),
-                  onPressed: onToggleStartMenu,
-                  tooltip: strings.workspaceStartMenu,
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    backgroundColor: isStartMenuOpen
-                        ? palette.accent.withValues(alpha: 0.14)
-                        : Colors.transparent,
-                    foregroundColor: palette.accent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  icon: const Icon(Icons.grid_view_rounded, size: 24),
-                ),
-              ),
-              if (!compact) ...[
-                const Gap(5),
-                Text(
-                  'ASTATINE',
-                  style: TextStyle(
-                    color: palette.primaryText,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                    fontSize: 12,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+          child: SizedBox(
+            height: 84,
+            child: Row(
+              children: [
+                Expanded(
+                  child: WorkspaceAppDock(
+                    strings: strings,
+                    openApps: openApps,
+                    activeApp: activeApp,
+                    isStartMenuOpen: isStartMenuOpen,
+                    onToggleStartMenu: onToggleStartMenu,
+                    onOpenApp: onOpenApp,
                   ),
                 ),
-              ],
-              const Spacer(),
-              if (!narrow) ...[
-                _TaskbarAppIcon(
-                  label: 'Flashcards',
-                  icon: Icons.style_rounded,
-                  active: activeApp == 'flashcard',
-                  open: openApps.contains('flashcard'),
-                  onTap: () => onOpenApp('flashcard'),
-                ),
-                _TaskbarAppIcon(
-                  label: 'Code Studio',
-                  icon: Icons.code_rounded,
-                  active: activeApp == 'code',
-                  open: openApps.contains('code'),
-                  onTap: () => onOpenApp('code'),
-                ),
-                _TaskbarAppIcon(
-                  label: 'Browser',
-                  icon: Icons.language_rounded,
-                  active: activeApp == 'browser',
-                  open: openApps.contains('browser'),
-                  onTap: () => onOpenApp('browser'),
-                ),
-              ],
-              const Spacer(),
-              IconButton(
-                key: const Key('workspace-control-center-button'),
-                onPressed: onToggleControlCenter,
-                tooltip: 'Control Center',
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  backgroundColor: isControlCenterOpen
-                      ? palette.accent.withValues(alpha: 0.14)
-                      : Colors.transparent,
-                  foregroundColor: palette.primaryText,
-                ),
-                icon: const Icon(Icons.tune_rounded, size: 21),
-              ),
-              const Gap(4),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    _time,
-                    style: TextStyle(
-                      color: palette.primaryText,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  if (!compact)
-                    Text(
-                      '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
-                      style: TextStyle(
-                        color: palette.secondaryText,
-                        fontSize: 10,
-                      ),
-                    ),
-                ],
-              ),
-              if (!narrow) ...[
                 const Gap(8),
-                Icon(
-                  Icons.wifi_rounded,
-                  color: palette.secondaryText,
-                  size: 18,
+                Container(
+                  key: const Key('workspace-status-bar'),
+                  height: 52,
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
+                  decoration: BoxDecoration(
+                    color: palette.card.withValues(alpha: 0.94),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.42),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        key: const Key('workspace-control-center-button'),
+                        onPressed: onToggleControlCenter,
+                        tooltip: 'Control Center',
+                        style: IconButton.styleFrom(
+                          minimumSize: const Size(40, 40),
+                          backgroundColor: isControlCenterOpen
+                              ? palette.accent.withValues(alpha: 0.14)
+                              : Colors.transparent,
+                          foregroundColor: palette.primaryText,
+                        ),
+                        icon: const Icon(Icons.tune_rounded, size: 21),
+                      ),
+                      const Gap(4),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _time,
+                            style: TextStyle(
+                              color: palette.primaryText,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          if (!compact)
+                            Text(
+                              '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}',
+                              style: TextStyle(
+                                color: palette.secondaryText,
+                                fontSize: 10,
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (!narrow) ...[
+                        const Gap(8),
+                        Icon(
+                          Icons.wifi_rounded,
+                          color: palette.secondaryText,
+                          size: 18,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
       );
     },
   );
-}
-
-class _TaskbarAppIcon extends StatelessWidget {
-  const _TaskbarAppIcon({
-    required this.label,
-    required this.icon,
-    required this.active,
-    required this.open,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool active;
-  final bool open;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette =
-        Theme.of(context).extension<AstatinePalette>() ??
-        AstatinePalette.campus;
-    return Tooltip(
-      message: label,
-      child: SizedBox(
-        width: 48,
-        height: 48,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            IconButton(
-              onPressed: onTap,
-              tooltip: label,
-              style: IconButton.styleFrom(
-                minimumSize: const Size(44, 44),
-                foregroundColor: active ? palette.accent : palette.primaryText,
-                backgroundColor: active
-                    ? palette.accent.withValues(alpha: 0.12)
-                    : Colors.transparent,
-              ),
-              icon: Icon(icon, size: 21),
-            ),
-            if (open)
-              Positioned(
-                bottom: 1,
-                child: Container(
-                  width: active ? 14 : 5,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: palette.accent,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _StartMenu extends StatelessWidget {
@@ -672,7 +813,7 @@ class _StartMenu extends StatelessWidget {
                       height: 42,
                       decoration: BoxDecoration(
                         color: palette.accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: Icon(
                         Icons.school_rounded,
@@ -720,6 +861,28 @@ class _StartMenu extends StatelessWidget {
                   ),
                 ),
                 const Gap(8),
+                _StartMenuApp(
+                  label: switch (strings.languageCode) {
+                    'vi' => 'Tệp',
+                    'zh' => '文件',
+                    _ => 'Files',
+                  },
+                  icon: Icons.folder_rounded,
+                  color: const Color(0xFFCA8A04),
+                  isOpen: openApps.contains('files'),
+                  onTap: () => onOpenApp('files'),
+                ),
+                _StartMenuApp(
+                  label: switch (strings.languageCode) {
+                    'vi' => 'Cài đặt',
+                    'zh' => '设置',
+                    _ => 'Settings',
+                  },
+                  icon: Icons.settings_rounded,
+                  color: const Color(0xFF64748B),
+                  isOpen: openApps.contains('settings'),
+                  onTap: () => onOpenApp('settings'),
+                ),
                 _StartMenuApp(
                   label: 'Flashcards',
                   icon: Icons.style_rounded,
@@ -786,10 +949,10 @@ class _StartMenuApp extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(16),
           child: SizedBox(
             height: 54,
             child: Row(
@@ -800,7 +963,7 @@ class _StartMenuApp extends StatelessWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 20),
                 ),
@@ -851,9 +1014,7 @@ class _WorkspaceGreeting extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          strings.isVietnamese
-              ? 'KHÔNG GIAN HỌC TẬP ASTATINE'
-              : 'ASTATINE LEARNING SPACE',
+          strings.isVietnamese ? 'ASTATINE WORKSPACE' : 'ASTATINE WORKSPACE',
           style: TextStyle(
             color: palette.accent,
             fontSize: 10,
@@ -1060,15 +1221,20 @@ class _ControlTile extends StatelessWidget {
 
 class _WorkspaceAppWindow extends StatelessWidget {
   const _WorkspaceAppWindow({
+    super.key,
     required this.appId,
+    required this.strings,
     required this.maximized,
+    required this.onMove,
     required this.onMaximize,
     required this.onMinimize,
     required this.onClose,
   });
 
   final String appId;
+  final AppStrings strings;
   final bool maximized;
+  final ValueChanged<Offset> onMove;
   final VoidCallback onMaximize;
   final VoidCallback onMinimize;
   final VoidCallback onClose;
@@ -1088,6 +1254,16 @@ class _WorkspaceAppWindow extends StatelessWidget {
       title: 'Browser',
       icon: Icons.language_rounded,
       color: Color(0xFF0F766E),
+    ),
+    'files': (
+      title: 'Files',
+      icon: Icons.folder_rounded,
+      color: Color(0xFFCA8A04),
+    ),
+    'settings': (
+      title: 'Settings',
+      icon: Icons.settings_rounded,
+      color: Color(0xFF64748B),
     ),
   };
 
@@ -1121,34 +1297,52 @@ class _WorkspaceAppWindow extends StatelessWidget {
               color: palette.input.withValues(alpha: 0.72),
               child: Row(
                 children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: details.color.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: Icon(details.icon, color: details.color, size: 19),
-                  ),
-                  const Gap(10),
                   Expanded(
-                    child: Text(
-                      details.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: palette.primaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
+                    child: GestureDetector(
+                      key: Key('workspace-window-titlebar-$appId'),
+                      behavior: HitTestBehavior.opaque,
+                      onPanUpdate: (details) => onMove(details.delta),
+                      onDoubleTap: onMaximize,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: details.color.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              details.icon,
+                              color: details.color,
+                              size: 19,
+                            ),
+                          ),
+                          const Gap(10),
+                          Expanded(
+                            child: Text(
+                              details.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: palette.primaryText,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   _WindowAction(
+                    key: Key('workspace-window-minimize-$appId'),
                     label: 'Minimize',
                     icon: Icons.remove_rounded,
                     onPressed: onMinimize,
                   ),
                   _WindowAction(
+                    key: Key('workspace-window-maximize-$appId'),
                     label: maximized ? 'Restore' : 'Maximize',
                     icon: maximized
                         ? Icons.filter_none_rounded
@@ -1156,6 +1350,7 @@ class _WorkspaceAppWindow extends StatelessWidget {
                     onPressed: onMaximize,
                   ),
                   _WindowAction(
+                    key: Key('workspace-window-close-$appId'),
                     label: 'Close',
                     icon: Icons.close_rounded,
                     onPressed: onClose,
@@ -1170,6 +1365,8 @@ class _WorkspaceAppWindow extends StatelessWidget {
                 child: switch (appId) {
                   'code' => const _CodeStudioContent(),
                   'browser' => const _StudyBrowserContent(),
+                  'files' => _WorkspaceFilesContent(strings: strings),
+                  'settings' => _WorkspaceSettingsContent(strings: strings),
                   _ => const _FlashcardContent(),
                 },
               ),
@@ -1181,8 +1378,255 @@ class _WorkspaceAppWindow extends StatelessWidget {
   }
 }
 
+class _WorkspaceFilesContent extends StatelessWidget {
+  const _WorkspaceFilesContent({required this.strings});
+
+  final AppStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette =
+        Theme.of(context).extension<AstatinePalette>() ??
+        AstatinePalette.campus;
+    final isVietnamese = strings.languageCode == 'vi';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isVietnamese ? 'Truy cập nhanh' : 'Quick access',
+          style: TextStyle(
+            color: palette.primaryText,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const Gap(14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _FileLocationChip(
+              icon: Icons.schedule_rounded,
+              label: isVietnamese ? 'Gần đây' : 'Recent',
+            ),
+            _FileLocationChip(
+              icon: Icons.people_alt_outlined,
+              label: isVietnamese ? 'Được chia sẻ' : 'Shared with me',
+            ),
+            _FileLocationChip(
+              icon: Icons.star_outline_rounded,
+              label: isVietnamese ? 'Đã đánh dấu' : 'Starred',
+            ),
+          ],
+        ),
+        const Gap(18),
+        Expanded(
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: palette.input.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: palette.border),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.folder_open_rounded,
+                  size: 38,
+                  color: palette.accent.withValues(alpha: 0.75),
+                ),
+                const Gap(12),
+                Text(
+                  isVietnamese
+                      ? 'Tệp của bạn sẽ ở đây'
+                      : 'Your files live here',
+                  style: TextStyle(
+                    color: palette.primaryText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Gap(5),
+                Text(
+                  isVietnamese
+                      ? 'Tài liệu học tập được chia sẻ sẽ tập hợp tại một nơi.'
+                      : 'Shared learning materials will be gathered in one place.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: palette.secondaryText, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FileLocationChip extends StatelessWidget {
+  const _FileLocationChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette =
+        Theme.of(context).extension<AstatinePalette>() ??
+        AstatinePalette.campus;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: palette.input,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: palette.accent),
+          const Gap(7),
+          Text(
+            label,
+            style: TextStyle(
+              color: palette.primaryText,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkspaceSettingsContent extends StatelessWidget {
+  const _WorkspaceSettingsContent({required this.strings});
+
+  final AppStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette =
+        Theme.of(context).extension<AstatinePalette>() ??
+        AstatinePalette.campus;
+    final isVietnamese = strings.languageCode == 'vi';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isVietnamese ? 'Không gian của bạn' : 'Your workspace',
+          style: TextStyle(
+            color: palette.primaryText,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const Gap(6),
+        Text(
+          isVietnamese
+              ? 'Tùy chỉnh trải nghiệm học tập của bạn.'
+              : 'Personalize your learning experience.',
+          style: TextStyle(color: palette.secondaryText, fontSize: 13),
+        ),
+        const Gap(18),
+        _WorkspaceSettingRow(
+          icon: Icons.palette_outlined,
+          title: isVietnamese ? 'Giao diện' : 'Appearance',
+          subtitle: isVietnamese
+              ? 'Màu sắc và hình nền workspace'
+              : 'Workspace colors and wallpaper',
+        ),
+        const Gap(10),
+        _WorkspaceSettingRow(
+          icon: Icons.notifications_none_rounded,
+          title: isVietnamese ? 'Thông báo' : 'Notifications',
+          subtitle: isVietnamese
+              ? 'Quản lý thông báo học tập'
+              : 'Manage learning notifications',
+        ),
+        const Gap(10),
+        _WorkspaceSettingRow(
+          icon: Icons.accessibility_new_rounded,
+          title: isVietnamese ? 'Trợ năng' : 'Accessibility',
+          subtitle: isVietnamese
+              ? 'Chuyển động và cách hiển thị'
+              : 'Motion and display preferences',
+        ),
+        const Spacer(),
+        Text(
+          isVietnamese
+              ? 'Các tùy chọn sẽ sớm khả dụng.'
+              : 'More workspace options are coming soon.',
+          style: TextStyle(color: palette.secondaryText, fontSize: 11),
+        ),
+      ],
+    );
+  }
+}
+
+class _WorkspaceSettingRow extends StatelessWidget {
+  const _WorkspaceSettingRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette =
+        Theme.of(context).extension<AstatinePalette>() ??
+        AstatinePalette.campus;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.input.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: palette.accent, size: 21),
+          const Gap(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: palette.primaryText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Gap(2),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: palette.secondaryText, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: palette.secondaryText,
+            size: 20,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _WindowAction extends StatelessWidget {
   const _WindowAction({
+    super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
@@ -1263,14 +1707,14 @@ class _FlashcardContentState extends State<_FlashcardContent> {
         Expanded(
           child: Material(
             color: const Color(0xFFFFF7E7),
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(20),
             child: InkWell(
               onTap: () => setState(() => _showAnswer = !_showAnswer),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20),
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: const Color(0xFFF1D8AE), width: 2),
                 ),
                 child: Column(
@@ -1359,7 +1803,7 @@ class _CodeStudioContentState extends State<_CodeStudioContent> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF1E1B4B),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
           ),
           child: const Text(
             'void main() {\n'
@@ -1437,7 +1881,7 @@ class _CodeOutput extends StatelessWidget {
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       color: palette.input,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       border: Border.all(color: palette.border),
     ),
     child: Column(

@@ -724,15 +724,15 @@ class _VirtualChemistryLabScreenState extends State<VirtualChemistryLabScreen>
     final formulaColor = MoleculeTile.reagentTextColor(chemical.formula);
     final tile = Material(
       color: _palette.input,
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
         key: Key('reagent-${chemical.id}'),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         onTap: () => _addChemical(chemical),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 7),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: categoryColor.withValues(alpha: 0.38)),
           ),
           child: Column(
@@ -798,7 +798,7 @@ class _VirtualChemistryLabScreenState extends State<VirtualChemistryLabScreen>
         duration: const Duration(milliseconds: 160),
         decoration: BoxDecoration(
           color: _panel,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: _isHoveringBeaker ? _blue : _palette.border,
             width: _isHoveringBeaker ? 1.5 : 1,
@@ -968,7 +968,7 @@ class _VirtualChemistryLabScreenState extends State<VirtualChemistryLabScreen>
       padding: const EdgeInsets.fromLTRB(8, 7, 8, 3),
       decoration: BoxDecoration(
         color: _palette.card.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border),
       ),
       child: Column(
@@ -1247,7 +1247,7 @@ class _VirtualChemistryLabScreenState extends State<VirtualChemistryLabScreen>
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: color.withValues(alpha: 0.28)),
     ),
     child: Text(
@@ -1275,13 +1275,13 @@ class _VirtualChemistryLabScreenState extends State<VirtualChemistryLabScreen>
 
   Widget _panelCard({required Widget child}) {
     return HoverRipple(
-      borderRadius: BorderRadius.circular(11),
+      borderRadius: BorderRadius.circular(8),
       color: _palette.accent,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _panel,
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: _palette.border),
         ),
         child: child,

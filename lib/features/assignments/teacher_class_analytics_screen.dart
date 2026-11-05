@@ -8,6 +8,7 @@ import 'package:astatine_dashboard/core/localization/app_localizations.dart';
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
 import 'package:astatine_dashboard/core/ui/glide_select.dart';
 import 'package:astatine_dashboard/core/ui/hover_ripple.dart';
+import 'package:astatine_dashboard/core/ui/loading_skeleton.dart';
 import 'package:astatine_dashboard/features/profile/user_profile_avatar.dart';
 
 class TeacherClassAnalyticsScreen extends StatefulWidget {
@@ -300,7 +301,7 @@ class _TeacherClassAnalyticsScreenState
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
                   color: _cyan.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(7),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: _cyan.withValues(alpha: 0.3)),
                 ),
                 child: Text(
@@ -324,7 +325,9 @@ class _TeacherClassAnalyticsScreenState
       body: Material(
         color: Colors.transparent,
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? AnalyticsSkeleton(
+                label: _text('Đang tải dữ liệu phân tích', 'Loading analytics'),
+              )
             : _error != null
             ? _buildError()
             : _buildContent(compact),
@@ -418,7 +421,7 @@ class _TeacherClassAnalyticsScreenState
         Container(
           decoration: BoxDecoration(
             color: _palette.card,
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: _palette.border.withValues(alpha: 0.8)),
           ),
           child: Column(
@@ -455,7 +458,7 @@ class _TeacherClassAnalyticsScreenState
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: _palette.card,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: _palette.border.withValues(alpha: 0.8)),
         ),
         child: Column(
@@ -621,11 +624,11 @@ class _TeacherClassAnalyticsScreenState
       fillColor: _palette.input,
       contentPadding: const EdgeInsets.symmetric(vertical: 11),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: _palette.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: _palette.border),
       ),
     ),
@@ -731,7 +734,7 @@ class _TeacherClassAnalyticsScreenState
                         border: Border.all(
                           color: _palette.border.withValues(alpha: 0.8),
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       border: TableBorder(
                         horizontalInside: BorderSide(
@@ -824,13 +827,13 @@ class _TeacherClassAnalyticsScreenState
   }
 
   Widget _studentCard(_AnalyticsStudent student) => HoverRipple(
-    borderRadius: BorderRadius.circular(10),
+    borderRadius: BorderRadius.circular(8),
     color: _palette.accent,
     child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: _palette.input.withValues(alpha: 0.62),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border.withValues(alpha: 0.8)),
       ),
       child: Column(
@@ -929,7 +932,7 @@ class _TeacherClassAnalyticsScreenState
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Text(
@@ -1003,7 +1006,7 @@ class _TeacherClassAnalyticsScreenState
         backgroundColor: _palette.card,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: _palette.border),
         ),
         child: ConstrainedBox(
@@ -1246,7 +1249,7 @@ class _TeacherClassAnalyticsScreenState
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _palette.input.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: _palette.border.withValues(alpha: 0.75)),
         ),
         child: Column(
@@ -1332,7 +1335,7 @@ class _TeacherClassAnalyticsScreenState
           ),
           const SizedBox(height: 5),
           ClipRRect(
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: (topic.rate / 100).clamp(0, 1),
               minHeight: 6,

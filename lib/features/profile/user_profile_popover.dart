@@ -246,7 +246,7 @@ class _UserProfilePopoverState extends State<UserProfilePopover> {
                             foregroundColor: _palette.accentText,
                             padding: const EdgeInsets.symmetric(vertical: 13),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                           icon: _openingConversation
@@ -582,7 +582,7 @@ class _UserProfilePopoverState extends State<UserProfilePopover> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: _palette.background.withValues(alpha: 0.42),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _palette.border),
       ),
       child: Text(

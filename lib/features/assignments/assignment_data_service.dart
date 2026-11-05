@@ -542,6 +542,7 @@ class AssignmentDataService {
   Future<void> createAssignment({
     required String classId,
     required String title,
+    String description = '',
     required String subject,
     required int coinReward,
     required DateTime dueAt,
@@ -584,7 +585,7 @@ class AssignmentDataService {
           'teacher_id': user.id,
           'class_id': classId,
           'title': title.trim(),
-          'description': '',
+          'description': description.trim(),
           'subject': subject,
           'coin_reward': coinReward,
           'passing_score': passingScore,

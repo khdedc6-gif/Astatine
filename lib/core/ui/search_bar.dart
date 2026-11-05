@@ -1,6 +1,8 @@
+// Lucian UX/UI Prompt #046 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#046
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
 
@@ -45,7 +47,10 @@ class LabSearchBar extends StatefulWidget {
 class _LabSearchBarState extends State<LabSearchBar> {
   final _overlayController = OverlayPortalController();
   final _layerLink = LayerLink();
+  final _focusNode = FocusNode(debugLabel: 'Search command palette');
   String _query = '';
+  int _activeIndex = 0;
+  bool _isOpen = false;
 
   List<LabSearchItem> get _matches {
     final query = _normalize(_query.trim());
@@ -56,8 +61,15 @@ class _LabSearchBarState extends State<LabSearchBar> {
       final score = _score(query, _normalize(item.searchText));
       if (score >= 0.34) scored.add((item, score));
     }
+
     scored.sort((a, b) => b.$2.compareTo(a.$2));
     return scored.take(5).map((entry) => entry.$1).toList();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -70,53 +82,101 @@ class _LabSearchBarState extends State<LabSearchBar> {
             ? constraints.maxWidth
             : 320.0;
 
-        return OverlayPortal(
-          controller: _overlayController,
-          overlayChildBuilder: (context) => CompositedTransformFollower(
-            link: _layerLink,
-            showWhenUnlinked: false,
-            targetAnchor: Alignment.bottomLeft,
-            followerAnchor: Alignment.topLeft,
-            offset: const Offset(0, 7),
-            child: Material(
-              color: Colors.transparent,
-              child: SizedBox(width: width, child: _buildResults()),
-            ),
-          ),
-          child: CompositedTransformTarget(
-            link: _layerLink,
-            child: TextField(
-              key: widget.searchKey,
-              onChanged: _updateQuery,
-              style: TextStyle(color: palette.primaryText, fontSize: 13),
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                hintStyle: TextStyle(
-                  color: palette.secondaryText,
-                  fontSize: 12,
+        return Shortcuts(
+          shortcuts: const {
+            SingleActivator(LogicalKeyboardKey.keyK, control: true):
+                _OpenPaletteIntent(),
+            SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+                _OpenPaletteIntent(),
+          },
+          child: Actions(
+            actions: {
+              _OpenPaletteIntent: CallbackAction<_OpenPaletteIntent>(
+                onInvoke: (_) {
+                  _openPalette();
+                  return null;
+                },
+              ),
+            },
+            child: OverlayPortal(
+              controller: _overlayController,
+              overlayChildBuilder: (context) => CompositedTransformFollower(
+                link: _layerLink,
+                showWhenUnlinked: false,
+                targetAnchor: Alignment.bottomLeft,
+                followerAnchor: Alignment.topLeft,
+                offset: const Offset(0, 7),
+                child: Material(
+                  color: Colors.transparent,
+                  child: SizedBox(width: width, child: _buildResults()),
                 ),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  color: palette.secondaryText,
-                  size: 19,
-                ),
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Xóa tìm kiếm',
-                        onPressed: _clearQuery,
-                        icon: const Icon(Icons.close_rounded, size: 17),
+              ),
+              child: CompositedTransformTarget(
+                link: _layerLink,
+                child: Focus(
+                  onKeyEvent: _handleKeyEvent,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 500),
+                    curve: const Cubic(0.2, 0.8, 0.2, 1),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(_isOpen ? 14 : 28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: palette.accent.withValues(
+                            alpha: _isOpen ? 0.12 : 0.06,
+                          ),
+                          blurRadius: _isOpen ? 18 : 12,
+                          spreadRadius: -5,
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      key: widget.searchKey,
+                      focusNode: _focusNode,
+                      onChanged: _updateQuery,
+                      onTap: _handleFieldTap,
+                      style: TextStyle(
+                        color: palette.primaryText,
+                        fontSize: 13,
                       ),
-                filled: true,
-                fillColor: palette.input,
-                contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: palette.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: palette.accent),
+                      decoration: InputDecoration(
+                        hintText: widget.hintText,
+                        hintStyle: TextStyle(
+                          color: palette.secondaryText,
+                          fontSize: 12,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: palette.secondaryText,
+                          size: 19,
+                        ),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Xóa tìm kiếm',
+                                onPressed: _clearQuery,
+                                icon: const Icon(Icons.close_rounded, size: 17),
+                              ),
+                        filled: true,
+                        fillColor: palette.input,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 13,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            _isOpen ? 14 : 28,
+                          ),
+                          borderSide: BorderSide(color: palette.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            _isOpen ? 14 : 28,
+                          ),
+                          borderSide: BorderSide(color: palette.accent),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -127,17 +187,77 @@ class _LabSearchBarState extends State<LabSearchBar> {
   }
 
   void _updateQuery(String value) {
-    setState(() => _query = value);
-    if (value.trim().isEmpty) {
-      _overlayController.hide();
-    } else {
+    final hasQuery = value.trim().isNotEmpty;
+    setState(() {
+      _query = value;
+      _activeIndex = 0;
+      _isOpen = hasQuery;
+    });
+    if (hasQuery) {
       _overlayController.show();
+    } else {
+      _overlayController.hide();
     }
   }
 
   void _clearQuery() {
-    setState(() => _query = '');
+    setState(() {
+      _query = '';
+      _activeIndex = 0;
+      _isOpen = false;
+    });
     _overlayController.hide();
+    _focusNode.requestFocus();
+  }
+
+  void _openPalette() {
+    _focusNode.requestFocus();
+    if (_query.trim().isEmpty) {
+      _overlayController.hide();
+      return;
+    }
+    setState(() => _isOpen = true);
+    _overlayController.show();
+  }
+
+  void _handleFieldTap() {
+    if (_query.trim().isNotEmpty) {
+      _openPalette();
+    } else {
+      if (_isOpen) setState(() => _isOpen = false);
+      _overlayController.hide();
+    }
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      setState(() {
+        _isOpen = false;
+        _query = '';
+      });
+      _overlayController.hide();
+      node.unfocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      final matches = _matches;
+      if (matches.isEmpty) return KeyEventResult.handled;
+      setState(() {
+        final delta = event.logicalKey == LogicalKeyboardKey.arrowDown ? 1 : -1;
+        _activeIndex = (_activeIndex + delta + matches.length) % matches.length;
+      });
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.enter) {
+      final matches = _matches;
+      if (matches.isNotEmpty) {
+        _select(matches[_activeIndex]);
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
   }
 
   Widget _buildResults() {
@@ -147,11 +267,11 @@ class _LabSearchBarState extends State<LabSearchBar> {
     return Material(
       key: const Key('lab-search-results'),
       color: palette.card,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: palette.border),
         ),
         child: matches.isEmpty
@@ -168,11 +288,49 @@ class _LabSearchBarState extends State<LabSearchBar> {
                   ),
                 ),
               )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
+            : Stack(
                 children: [
-                  for (var index = 0; index < matches.length; index++)
-                    _buildResult(matches[index], index),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 400),
+                    curve: const Cubic(0.34, 1.45, 0.64, 1),
+                    top: _activeIndex * 54.0,
+                    left: 8,
+                    right: 8,
+                    height: 54,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: palette.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(13),
+                          boxShadow: [
+                            BoxShadow(
+                              color: palette.accent.withValues(alpha: 0.1),
+                              blurRadius: 12,
+                              spreadRadius: -5,
+                            ),
+                          ],
+                        ),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            width: 3,
+                            margin: const EdgeInsets.symmetric(vertical: 11),
+                            decoration: BoxDecoration(
+                              color: palette.accent,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var index = 0; index < matches.length; index++)
+                        _buildResult(matches[index], index),
+                    ],
+                  ),
                 ],
               ),
       ),
@@ -183,10 +341,11 @@ class _LabSearchBarState extends State<LabSearchBar> {
     final palette =
         Theme.of(context).extension<AstatinePalette>() ?? AstatinePalette.dark;
     return InkWell(
-      onTap: () {
-        _overlayController.hide();
-        setState(() => _query = '');
-        widget.onSelected(item);
+      onTap: () => _select(item),
+      onHover: (_) {
+        if (_activeIndex != index) {
+          setState(() => _activeIndex = index);
+        }
       },
       child: Container(
         constraints: const BoxConstraints(minHeight: 54),
@@ -203,7 +362,7 @@ class _LabSearchBarState extends State<LabSearchBar> {
               height: 32,
               decoration: BoxDecoration(
                 color: palette.input,
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 item.type == LabSearchItemType.destination
@@ -254,6 +413,21 @@ class _LabSearchBarState extends State<LabSearchBar> {
       ),
     );
   }
+
+  void _select(LabSearchItem item) {
+    _overlayController.hide();
+    setState(() {
+      _query = '';
+      _isOpen = false;
+      _activeIndex = 0;
+    });
+    _focusNode.unfocus();
+    widget.onSelected(item);
+  }
+}
+
+class _OpenPaletteIntent extends Intent {
+  const _OpenPaletteIntent();
 }
 
 double _score(String query, String text) {

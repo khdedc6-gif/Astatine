@@ -1,6 +1,10 @@
+// Lucian UX/UI Prompt #062 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#062
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:astatine_dashboard/core/branding/app_branding_assets.dart';
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/features/admin/admin_terminal.dart';
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
@@ -209,11 +213,13 @@ class AstatineLoginApp extends StatefulWidget {
     this.authenticator,
     this.registrar,
     this.profileLoader,
+    this.brandingAssetLoader,
   });
 
   final Authenticator? authenticator;
   final AccountRegistrar? registrar;
   final UserProfileLoader? profileLoader;
+  final AppBrandingAssetsLoader? brandingAssetLoader;
 
   @override
   State<AstatineLoginApp> createState() => _AstatineLoginAppState();
@@ -236,6 +242,8 @@ class _AstatineLoginAppState extends State<AstatineLoginApp> {
           authenticator: widget.authenticator,
           registrar: widget.registrar,
           profileLoader: widget.profileLoader,
+          brandingAssetLoader: widget.brandingAssetLoader,
+          adminTerminalOnForceLogout: _forceLogout,
         ),
       ),
       (_) => false,
@@ -249,10 +257,8 @@ class _AstatineLoginAppState extends State<AstatineLoginApp> {
       navigatorKey: ToastService.navigatorKey,
       title: 'Astatine Login',
       scrollBehavior: const CustomScrollBehavior(),
-      builder: (context, child) => AdminTerminalHost(
-        onForceLogout: _forceLogout,
-        child: BlueCursorOverlay(child: child ?? const SizedBox.shrink()),
-      ),
+      builder: (context, child) =>
+          BlueCursorOverlay(child: child ?? const SizedBox.shrink()),
       theme: AstatinePalette.themeData(_selectedTheme),
       home: LoginScreen(
         selectedTheme: _selectedTheme,
@@ -260,6 +266,8 @@ class _AstatineLoginAppState extends State<AstatineLoginApp> {
         authenticator: widget.authenticator,
         registrar: widget.registrar,
         profileLoader: widget.profileLoader,
+        brandingAssetLoader: widget.brandingAssetLoader,
+        adminTerminalOnForceLogout: _forceLogout,
       ),
     );
   }
@@ -273,6 +281,8 @@ class LoginScreen extends StatefulWidget {
     this.authenticator,
     this.registrar,
     this.profileLoader,
+    this.brandingAssetLoader,
+    this.adminTerminalOnForceLogout,
   });
 
   final String selectedTheme;
@@ -280,12 +290,57 @@ class LoginScreen extends StatefulWidget {
   final Authenticator? authenticator;
   final AccountRegistrar? registrar;
   final UserProfileLoader? profileLoader;
+  final AppBrandingAssetsLoader? brandingAssetLoader;
+  final Future<void> Function()? adminTerminalOnForceLogout;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with TickerProviderStateMixin {
+  static const _shakeCurve = Cubic(0.36, 0.07, 0.19, 0.97);
+  static const _learningQuotes =
+      <
+        ({
+          String vietnamese,
+          String english,
+          String vietnameseAuthor,
+          String englishAuthor,
+        })
+      >[
+        (
+          vietnamese: 'Tri thức là kho báu sẽ theo chân người sở hữu nó đi khắp mọi nơi.',
+          english: 'Knowledge is a treasure that follows its owner everywhere.',
+          vietnameseAuthor: 'Tục ngữ Trung Hoa',
+          englishAuthor: 'Chinese proverb',
+        ),
+        (
+          vietnamese: 'Hãy sống như thể bạn sẽ chết ngày mai, hãy học như thể bạn sẽ sống mãi mãi.',
+          english: 'Live as if you were to die tomorrow. Learn as if you were to live forever.',
+          vietnameseAuthor: 'Mahatma Gandhi',
+          englishAuthor: 'Mahatma Gandhi',
+        ),
+        (
+          vietnamese: 'Trí tuệ không phải sản phẩm của trường lớp, mà là kết quả của nỗ lực học hỏi suốt đời.',
+          english: 'Wisdom is not a product of schooling, but the lifelong effort to learn.',
+          vietnameseAuthor: 'Albert Einstein',
+          englishAuthor: 'Albert Einstein',
+        ),
+        (
+          vietnamese: 'Học không bao giờ là đau khổ. Đau khổ chỉ đến từ việc không hiểu.',
+          english: 'Learning is never painful. Pain comes only from not understanding.',
+          vietnameseAuthor: 'John Wooden',
+          englishAuthor: 'John Wooden',
+        ),
+        (
+          vietnamese: 'Thất bại là cơ hội học tập mới. Nếu bạn không thất bại, bạn chưa học hết.',
+          english: 'Failure is a new opportunity to learn. If you are not failing, you are not learning enough.',
+          vietnameseAuthor: 'Zig Ziglar',
+          englishAuthor: 'Zig Ziglar',
+        ),
+      ];
+
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController _signUpFullNameController =
@@ -293,14 +348,95 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _signUpEmailController = TextEditingController();
   final TextEditingController _signUpPasswordController =
       TextEditingController();
+  final _loginFormKey = GlobalKey<FormState>();
+  final _passwordFocusNode = FocusNode(debugLabel: 'Login password');
+  late final AnimationController _shakeController;
+  late final Animation<Offset> _shakeOffset;
+  late final Animation<double> _shakeRotation;
+  Timer? _learningQuoteTimer;
+  int _learningQuoteIndex = 0;
   bool obscurePassword = true;
   bool isVietnamese = true;
   bool loginError = false;
   String? loginErrorMessage;
   bool _isLoggingIn = false;
+  bool _loginSuccess = false;
 
   AstatinePalette get _palette =>
       Theme.of(context).extension<AstatinePalette>() ?? AstatinePalette.dark;
+  Color get _loginCta => widget.selectedTheme == 'Campus'
+      ? const Color(0xFFEA580C)
+      : _palette.accent;
+  Color get _loginCtaText =>
+      widget.selectedTheme == 'Campus' ? Colors.black : _palette.accentText;
+  bool get _reduceMotion => MediaQuery.disableAnimationsOf(context);
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _shakeOffset = TweenSequence<Offset>([
+      _shakeOffsetStep(Offset.zero, const Offset(-9, 0), 15),
+      _shakeOffsetStep(const Offset(-9, 0), const Offset(8, 0), 15),
+      _shakeOffsetStep(const Offset(8, 0), const Offset(-6, 0), 15),
+      _shakeOffsetStep(const Offset(-6, 0), const Offset(4, 0), 15),
+      _shakeOffsetStep(const Offset(4, 0), const Offset(-2, 0), 15),
+      _shakeOffsetStep(const Offset(-2, 0), Offset.zero, 25),
+    ]).animate(_shakeController);
+    _shakeRotation = TweenSequence<double>([
+      _shakeRotationStep(0, -0.010472, 15),
+      _shakeRotationStep(-0.010472, 0.008727, 15),
+      _shakeRotationStep(0.008727, 0, 15),
+      _shakeRotationStep(0, 0, 55),
+    ]).animate(_shakeController);
+    _learningQuoteTimer = Timer.periodic(
+      const Duration(seconds: 7),
+      (_) => setState(() {
+        _learningQuoteIndex =
+            (_learningQuoteIndex + 1) % _learningQuotes.length;
+      }),
+    );
+    _loadBrandingAssets();
+  }
+
+  TweenSequenceItem<Offset> _shakeOffsetStep(
+    Offset begin,
+    Offset end,
+    double weight,
+  ) => TweenSequenceItem<Offset>(
+    tween: Tween<Offset>(
+      begin: begin,
+      end: end,
+    ).chain(CurveTween(curve: _shakeCurve)),
+    weight: weight,
+  );
+
+  TweenSequenceItem<double> _shakeRotationStep(
+    double begin,
+    double end,
+    double weight,
+  ) => TweenSequenceItem<double>(
+    tween: Tween<double>(
+      begin: begin,
+      end: end,
+    ).chain(CurveTween(curve: _shakeCurve)),
+    weight: weight,
+  );
+
+  void _loadBrandingAssets() {
+    final loader = widget.brandingAssetLoader;
+    if (loader == null) return;
+    unawaited(() async {
+      try {
+        AppBrandingAssets.publish(await loader());
+      } catch (error) {
+        debugPrint('Unable to load public app branding images: $error');
+      }
+    }());
+  }
 
   @override
   void dispose() {
@@ -309,15 +445,20 @@ class _LoginScreenState extends State<LoginScreen> {
     _signUpFullNameController.dispose();
     _signUpEmailController.dispose();
     _signUpPasswordController.dispose();
+    _passwordFocusNode.dispose();
+    _learningQuoteTimer?.cancel();
+    _shakeController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
     if (_isLoggingIn) return;
+    if (!(_loginFormKey.currentState?.validate() ?? false)) return;
     setState(() {
       loginError = false;
       loginErrorMessage = null;
       _isLoggingIn = true;
+      _loginSuccess = false;
     });
 
     final error = await (widget.authenticator ?? AuthService.signIn)(
@@ -330,29 +471,44 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _isLoggingIn = false;
         loginError = true;
+        _loginSuccess = false;
         loginErrorMessage = error.toLowerCase().startsWith('account banned')
             ? error
             : null;
       });
+      if (!_reduceMotion) _shakeController.forward(from: 0);
       return;
     }
 
     final profile =
         await (widget.profileLoader ?? AuthService.getCurrentUserProfile)();
     if (!mounted) return;
-    setState(() => _isLoggingIn = false);
+    if (!_reduceMotion) {
+      setState(() => _loginSuccess = true);
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (!mounted) return;
+      setState(() {
+        _isLoggingIn = false;
+        _loginSuccess = false;
+      });
+    }
 
+    final dashboard = MainLayoutScreen(
+      selectedTheme: widget.selectedTheme,
+      onThemeChanged: widget.onThemeChanged,
+      currentUserName: profile.displayName,
+      currentUserEmail: profile.email,
+      currentUserRole: profile.role,
+      isVietnamese: isVietnamese,
+      currentUserId: profile.id,
+      brandingAssetLoader: widget.brandingAssetLoader,
+    );
+    final onForceLogout = widget.adminTerminalOnForceLogout;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (_) => MainLayoutScreen(
-          selectedTheme: widget.selectedTheme,
-          onThemeChanged: widget.onThemeChanged,
-          currentUserName: profile.displayName,
-          currentUserEmail: profile.email,
-          currentUserRole: profile.role,
-          isVietnamese: isVietnamese,
-          currentUserId: profile.id,
-        ),
+        builder: (_) => onForceLogout == null
+            ? dashboard
+            : AdminTerminalHost(onForceLogout: onForceLogout, child: dashboard),
       ),
     );
   }
@@ -436,29 +592,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           : null,
                     ),
                     const SizedBox(height: 14),
-                    DropdownButtonFormField<String>(
+                    GlideSelect<String>.dropdown(
                       key: const Key('signup-role'),
-                      initialValue: selectedRole,
-                      dropdownColor: _palette.card,
-                      style: TextStyle(color: _palette.primaryText),
+                      value: selectedRole,
                       decoration: _inputDecoration(
                         hintText: isVietnamese ? 'Vai trò' : 'Role',
                         prefixIcon: Icons.school_outlined,
                       ),
-                      items: [
-                        DropdownMenuItem(
+                      options: [
+                        GlideSelectOption(
                           value: 'student',
-                          child: GlideSelect(
-                            selected: selectedRole == 'student',
-                            child: Text(isVietnamese ? 'Học sinh' : 'Student'),
-                          ),
+                          label: isVietnamese ? 'Học sinh' : 'Student',
                         ),
-                        DropdownMenuItem(
+                        GlideSelectOption(
                           value: 'teacher',
-                          child: GlideSelect(
-                            selected: selectedRole == 'teacher',
-                            child: Text(isVietnamese ? 'Giáo viên' : 'Teacher'),
-                          ),
+                          label: isVietnamese ? 'Giáo viên' : 'Teacher',
                         ),
                       ],
                       onChanged: isSubmitting
@@ -545,347 +693,550 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      backgroundColor: _palette.background,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 880;
+            return ColoredBox(
+              color: _palette.background,
+              child: compact
+                  ? SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildHeroPanel(compact: true),
+                          ColoredBox(
+                            color: _palette.card,
+                            child: _buildLoginForm(compact: true),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 11,
+                          child: _buildHeroPanel(compact: false),
+                        ),
+                        Expanded(
+                          flex: 9,
+                          child: ColoredBox(
+                            key: const Key('login-form-panel'),
+                            color: _palette.card,
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 520,
+                                ),
+                                child: _buildLoginForm(compact: false),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroPanel({required bool compact}) {
+    final title = isVietnamese
+        ? 'Học tốt hơn,\ncùng nhau mỗi ngày.'
+        : 'Make room to learn,\ngrow, and share.';
+    return SizedBox(
+      key: const Key('login-hero-panel'),
+      height: compact ? 384 : null,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Positioned(
-            left: MediaQuery.of(context).size.width / 2 - 300,
-            top: MediaQuery.of(context).size.height / 2 - 300,
-            child: Container(
-              width: 600,
-              height: 600,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    _palette.accent.withValues(alpha: 0.24),
-                    _palette.accent.withValues(alpha: 0.08),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.1, 0.5, 1.0],
-                ),
+          const ColoredBox(color: Color(0xFF18181B)),
+          ValueListenableBuilder<Map<BrandingAssetSlot, BrandingImageSetting>>(
+            valueListenable: AppBrandingAssets.current,
+            builder: (context, assets, _) {
+              final imageSetting = assets[BrandingAssetSlot.loginBackground];
+              if (imageSetting == null) return const SizedBox.shrink();
+              return BrandingNetworkImage(
+                setting: imageSetting,
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('Unable to render the login background: $error');
+                  return const SizedBox.shrink();
+                },
+              );
+            },
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x00000000),
+                  Color(0x00000000),
+                  Color(0xCC000000),
+                  Color(0xF2000000),
+                ],
+                stops: [0, 0.34, 0.66, 1],
               ),
             ),
           ),
-
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Container(
-                width: MediaQuery.sizeOf(context).width < 472
-                    ? MediaQuery.sizeOf(context).width - 32
-                    : 440,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 36,
-                  vertical: 40,
-                ),
-                decoration: BoxDecoration(
-                  color: _palette.card.withValues(alpha: 0.96),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: _palette.border, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _palette.accent.withValues(alpha: 0.12),
-                      blurRadius: 30,
-                      offset: const Offset(0, 12),
-                    ),
-                    BoxShadow(
-                      color: _palette.accent.withValues(alpha: 0.08),
-                      blurRadius: 0,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+          Positioned(
+            right: compact ? -30 : -10,
+            top: compact ? 4 : 42,
+            child: Icon(
+              Icons.auto_awesome_rounded,
+              size: compact ? 108 : 220,
+              color: Colors.white.withValues(alpha: 0.09),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              compact ? 22 : 52,
+              compact ? 20 : 54,
+              compact ? 22 : 52,
+              compact ? 18 : 46,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SizedBox(height: compact ? 16 : 180),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: SegmentedButton<bool>(
-                        key: const Key('login-language-toggle'),
-                        segments: [
-                          ButtonSegment(
-                            value: true,
-                            label: GlideSelect(
-                              selected: isVietnamese,
-                              child: const Text('VI'),
-                            ),
-                          ),
-                          ButtonSegment(
-                            value: false,
-                            label: GlideSelect(
-                              selected: !isVietnamese,
-                              child: const Text('EN'),
-                            ),
-                          ),
-                        ],
-                        selected: {isVietnamese},
-                        onSelectionChanged: (selection) =>
-                            setState(() => isVietnamese = selection.first),
-                        style: SegmentedButton.styleFrom(
-                          foregroundColor: _palette.secondaryText,
-                          selectedForegroundColor: _palette.accentText,
-                          selectedBackgroundColor: _palette.accent,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Logo Astatine
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _palette.accent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'A',
-                        style: TextStyle(
-                          color: _palette.accentText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
+                    Text(
+                      isVietnamese ? '' : '',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: const Color(0xFFFFD6B8),
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.35,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Astatine',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontSize: 22, letterSpacing: 1.5),
+                      title,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            height: 1.08,
+                            fontSize: compact ? 25 : 38,
+                          ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      isVietnamese
-                          ? 'Không gian lớp học và học tập thông minh Astatine.'
-                          : 'The Discord-hybrid educational classroom workspace.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: _palette.secondaryText,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Ô nhập Username hoặc Email
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isVietnamese ? 'ĐỊA CHỈ EMAIL' : 'EMAIL',
-                          style: TextStyle(
-                            color: _palette.secondaryText,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
+                    const SizedBox(height: 14),
+                    _buildLearningQuote(compact: compact),
+                    if (!compact) ...[
+                      const SizedBox(height: 28),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          _heroFeature(
+                            Icons.groups_rounded,
+                            isVietnamese
+                                ? 'Lớp học kết nối'
+                                : 'Connected classrooms',
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          key: const Key('login-username'),
-                          controller: emailController,
-                          onSubmitted: (_) => _login(),
-                          style: TextStyle(
-                            color: _palette.primaryText,
-                            fontSize: 13,
+                          _heroFeature(
+                            Icons.task_alt_rounded,
+                            isVietnamese
+                                ? 'Nhiệm vụ rõ ràng'
+                                : 'Focused assignments',
                           ),
-                          decoration: _inputDecoration(
-                            hintText: isVietnamese
-                                ? 'Nhập email của bạn'
-                                : 'Enter your email',
-                            prefixIcon: Icons.person_outline,
+                          _heroFeature(
+                            Icons.lightbulb_outline_rounded,
+                            isVietnamese
+                                ? 'Ý tưởng tỏa sáng'
+                                : 'Ideas that shine',
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Ô nhập Password
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isVietnamese ? 'MẬT KHẨU' : 'PASSWORD',
-                          style: TextStyle(
-                            color: _palette.secondaryText,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          key: const Key('login-password'),
-                          controller: passwordController,
-                          onSubmitted: (_) => _login(),
-                          obscureText: obscurePassword,
-                          style: TextStyle(
-                            color: _palette.primaryText,
-                            fontSize: 13,
-                          ),
-                          decoration: _inputDecoration(
-                            hintText: '••••••••',
-                            prefixIcon: Icons.lock_outline,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: _palette.secondaryText,
-                                size: 18,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  obscurePassword = !obscurePassword;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (loginError) ...[
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          loginErrorMessage ??
-                              (isVietnamese
-                                  ? 'Email hoặc mật khẩu không đúng.'
-                                  : 'Incorrect email or password.'),
-                          key: const Key('login-error'),
-                          style: const TextStyle(
-                            color: Color(0xFFB42318),
-                            fontSize: 12,
-                          ),
-                        ),
+                        ],
                       ),
                     ],
-                    const SizedBox(height: 28),
-
-                    // Nút Log In chính
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: _isLoggingIn ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _palette.accent,
-                          foregroundColor: _palette.accentText,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 4,
-                        ),
-                        child: _isLoggingIn
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: _palette.accentText,
-                                ),
-                              )
-                            : Text(
-                                isVietnamese ? 'Đăng nhập' : 'Log In',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Dòng phụ trợ đăng ký nhanh
-                    TextButton(
-                      onPressed: _showSignUpDialog,
-                      child: Text(
-                        isVietnamese
-                            ? 'Mới dùng Astatine? Tạo tài khoản'
-                            : 'New to Astatine? Create an account',
-                        style: TextStyle(
-                          color: _palette.secondaryText,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Đường kẻ OR CONNECT WITH
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: _palette.border)),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            isVietnamese
-                                ? 'HOẶC KẾT NỐI VỚI'
-                                : 'OR CONNECT WITH',
-                            style: TextStyle(
-                              color: _palette.secondaryText,
-                              fontSize: 10,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ),
-                        Expanded(child: Divider(color: _palette.border)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Hai nút đăng nhập mạng xã hội (Google & Microsoft)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: null,
-                            icon: Icon(
-                              Icons.g_mobiledata,
-                              color: _palette.primaryText,
-                              size: 22,
-                            ),
-                            label: Text(
-                              'Google',
-                              style: TextStyle(
-                                color: _palette.primaryText,
-                                fontSize: 12,
-                              ),
-                            ),
-                            style: _socialButtonStyle(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: null,
-                            icon: Icon(
-                              Icons.window,
-                              color: _palette.primaryText,
-                              size: 16,
-                            ),
-                            label: Text(
-                              'Microsoft',
-                              style: TextStyle(
-                                color: _palette.primaryText,
-                                fontSize: 12,
-                              ),
-                            ),
-                            style: _socialButtonStyle(),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
-              ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildLearningQuote({required bool compact}) {
+    final quote = _learningQuotes[_learningQuoteIndex];
+    final quoteText = isVietnamese ? quote.vietnamese : quote.english;
+    final author = isVietnamese ? quote.vietnameseAuthor : quote.englishAuthor;
+    final reduceMotion = _reduceMotion;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 390),
+      child: AnimatedSwitcher(
+        key: const Key('login-learning-quote'),
+        duration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 700),
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          alignment: AlignmentDirectional.topStart,
+          children: [...previousChildren, ?currentChild],
+        ),
+        transitionBuilder: (child, animation) =>
+            FadeTransition(opacity: animation, child: child),
+        child: Column(
+          key: ValueKey('${isVietnamese ? 'vi' : 'en'}-$_learningQuoteIndex'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '“$quoteText”',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: compact ? 13 : null,
+                height: 1.45,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '— $author',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.72),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _heroFeature(IconData icon, String label) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.13),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFFFFC58F)),
+        const SizedBox(width: 7),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildLoginForm({required bool compact}) {
+    final formContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Text(
+              isVietnamese ? '' : '',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: _palette.accent,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+            SegmentedButton<bool>(
+              key: const Key('login-language-toggle'),
+              segments: [
+                ButtonSegment(
+                  value: true,
+                  label: GlideSelect(
+                    selected: isVietnamese,
+                    child: const Text('VI'),
+                  ),
+                ),
+                ButtonSegment(
+                  value: false,
+                  label: GlideSelect(
+                    selected: !isVietnamese,
+                    child: const Text('EN'),
+                  ),
+                ),
+              ],
+              selected: {isVietnamese},
+              onSelectionChanged: (selection) =>
+                  setState(() => isVietnamese = selection.first),
+              style: SegmentedButton.styleFrom(
+                foregroundColor: _palette.secondaryText,
+                selectedForegroundColor: _palette.accentText,
+                selectedBackgroundColor: _palette.accent,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(
+          isVietnamese ? 'Chào mừng trở lại' : 'Welcome back',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: _palette.primaryText,
+            fontWeight: FontWeight.w800,
+            fontSize: 30,
+            height: 1.15,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          isVietnamese
+              ? 'Tiếp tục hành trình học tập của bạn.'
+              : 'Pick up where your learning journey left off.',
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: _palette.secondaryText, height: 1.45),
+        ),
+        const SizedBox(height: 26),
+        Form(
+          key: _loginFormKey,
+          child: AutofillGroup(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fieldLabel(
+                  isVietnamese
+                      ? 'EMAIL HOẶC TÊN NGƯỜI DÙNG'
+                      : 'EMAIL OR USERNAME',
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  key: const Key('login-username'),
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.username],
+                  autocorrect: false,
+                  onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+                  style: TextStyle(color: _palette.primaryText, fontSize: 15),
+                  decoration: _inputDecoration(
+                    hintText: isVietnamese
+                        ? 'Nhập email hoặc tên người dùng'
+                        : 'Enter your email or username',
+                    prefixIcon: Icons.alternate_email_rounded,
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? (isVietnamese
+                            ? 'Vui lòng nhập email hoặc tên người dùng.'
+                            : 'Enter your email or username.')
+                      : null,
+                ),
+                const SizedBox(height: 18),
+                _fieldLabel(isVietnamese ? 'MẬT KHẨU' : 'PASSWORD'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  key: const Key('login-password'),
+                  controller: passwordController,
+                  focusNode: _passwordFocusNode,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.password],
+                  obscureText: obscurePassword,
+                  onFieldSubmitted: (_) => _login(),
+                  style: TextStyle(color: _palette.primaryText, fontSize: 15),
+                  decoration: _inputDecoration(
+                    hintText: isVietnamese ? 'Nhập mật khẩu' : 'Enter password',
+                    prefixIcon: Icons.lock_outline_rounded,
+                    suffixIcon: IconButton(
+                      tooltip: obscurePassword
+                          ? (isVietnamese ? 'Hiện mật khẩu' : 'Show password')
+                          : (isVietnamese ? 'Ẩn mật khẩu' : 'Hide password'),
+                      icon: Icon(
+                        obscurePassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
+                        color: _palette.secondaryText,
+                        size: 19,
+                      ),
+                      onPressed: () =>
+                          setState(() => obscurePassword = !obscurePassword),
+                    ),
+                  ),
+                  validator: (value) => value == null || value.isEmpty
+                      ? (isVietnamese
+                            ? 'Vui lòng nhập mật khẩu.'
+                            : 'Enter your password.')
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (loginError) ...[
+          const SizedBox(height: 16),
+          Semantics(
+            liveRegion: true,
+            child: Container(
+              key: const Key('login-error'),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 18,
+                    color: Color(0xFFB42318),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      loginErrorMessage ??
+                          (isVietnamese
+                              ? 'Email hoặc mật khẩu không đúng.'
+                              : 'Incorrect email or password.'),
+                      style: const TextStyle(
+                        color: Color(0xFF8F1D18),
+                        fontSize: 13,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 24),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final collapsed = _isLoggingIn || _loginSuccess;
+            return Align(
+              alignment: Alignment.center,
+              child: AnimatedContainer(
+                duration: _reduceMotion
+                    ? Duration.zero
+                    : const Duration(milliseconds: 450),
+                curve: const Cubic(0.34, 1.45, 0.64, 1),
+                width: collapsed ? 54 : constraints.maxWidth,
+                height: 54,
+                child: ElevatedButton(
+                  key: const Key('login-submit'),
+                  onPressed: collapsed ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _loginSuccess
+                        ? const Color(0xFF119C72)
+                        : _loginCta,
+                    foregroundColor: _loginSuccess
+                        ? Colors.white
+                        : _loginCtaText,
+                    disabledBackgroundColor: _loginSuccess
+                        ? const Color(0xFF119C72)
+                        : _loginCta,
+                    disabledForegroundColor: _loginSuccess
+                        ? Colors.white
+                        : _loginCtaText,
+                    elevation: 2,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(collapsed ? 27 : 17),
+                    ),
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: _reduceMotion
+                        ? Duration.zero
+                        : const Duration(milliseconds: 200),
+                    child: _loginSuccess
+                        ? const Icon(
+                            Icons.check_rounded,
+                            key: ValueKey('success'),
+                          )
+                        : _isLoggingIn
+                        ? SizedBox(
+                            key: const ValueKey('loading'),
+                            width: 21,
+                            height: 21,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.4,
+                              color: _loginCtaText,
+                            ),
+                          )
+                        : Text(
+                            isVietnamese ? 'Đăng nhập' : 'Sign in',
+                            key: const ValueKey('label'),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 14),
+        Center(
+          child: TextButton(
+            onPressed: _showSignUpDialog,
+            style: TextButton.styleFrom(
+              foregroundColor: _palette.accent,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            child: Text(
+              isVietnamese
+                  ? 'Chưa có tài khoản? Tạo tài khoản mới'
+                  : 'Don\'t have an account? Create one',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Center(
+          child: Text(
+            isVietnamese
+                ? 'Phiên bản beta. Một số tính năng có thể không hoạt động như mong đợi.'
+                : 'Beta version. Some features may not work as expected.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: _palette.secondaryText, fontSize: 11),
+          ),
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: EdgeInsets.all(compact ? 22 : 40),
+      child: AnimatedBuilder(
+        animation: _shakeController,
+        builder: (context, child) => Transform.translate(
+          offset: _shakeOffset.value,
+          child: Transform.rotate(angle: _shakeRotation.value, child: child),
+        ),
+        child: formContent,
+      ),
+    );
+  }
+
+  Widget _fieldLabel(String text) => Text(
+    text,
+    style: TextStyle(
+      color: _palette.secondaryText,
+      fontSize: 11,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.65,
+    ),
+  );
 
   InputDecoration _inputDecoration({
     required String hintText,
@@ -894,34 +1245,28 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: TextStyle(color: _palette.secondaryText, fontSize: 12),
-      prefixIcon: Icon(prefixIcon, color: _palette.secondaryText, size: 18),
+      hintStyle: TextStyle(
+        color: _palette.secondaryText.withValues(alpha: 0.85),
+        fontSize: 13,
+      ),
+      prefixIcon: Icon(prefixIcon, color: _palette.secondaryText, size: 19),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: _palette.input,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _palette.border),
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(color: _palette.border, width: 1.5),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _palette.border),
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(color: _palette.border, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _palette.accent, width: 1.5),
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(color: _palette.accent, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    );
-  }
-
-  ButtonStyle _socialButtonStyle() {
-    return OutlinedButton.styleFrom(
-      backgroundColor: _palette.card,
-      foregroundColor: _palette.canvasText,
-      side: BorderSide(color: _palette.border),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      errorMaxLines: 2,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 }

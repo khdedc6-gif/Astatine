@@ -42,6 +42,8 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
   final _answers = <String, String>{};
   final _flaggedQuestionIds = <String>{};
   final _noteStrokes = <_NoteStroke>[];
+  final _scratchpadRevision = ValueNotifier<int>(0);
+  final _scratchpadHasStrokes = ValueNotifier(false);
 
   Timer? _timer;
   late DateTime _startedAt;
@@ -108,6 +110,8 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
   void dispose() {
     _timer?.cancel();
     _questionScrollController.dispose();
+    _scratchpadRevision.dispose();
+    _scratchpadHasStrokes.dispose();
     for (final controller in _answerControllers.values) {
       controller.dispose();
     }
@@ -123,6 +127,13 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
       enabled ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
     );
     if (mounted) setState(() => _isFullscreen = enabled);
+  }
+
+  void _clearScratchpad() {
+    _activeStroke = null;
+    _noteStrokes.clear();
+    _scratchpadHasStrokes.value = false;
+    _scratchpadRevision.value++;
   }
 
   Future<void> _openSubmissionDialog() async {
@@ -166,7 +177,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
             backgroundColor: _panel,
             surfaceTintColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               side: BorderSide(color: _cyan.withValues(alpha: 0.3)),
             ),
             title: Text(
@@ -205,7 +216,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
                       color: _amber.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: _amber.withValues(alpha: 0.3)),
                     ),
                     child: Row(
@@ -286,7 +297,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -403,7 +414,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                   height: 38,
                   decoration: BoxDecoration(
                     color: _cyan.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: _cyan.withValues(alpha: 0.32)),
                     boxShadow: [
                       BoxShadow(
@@ -467,7 +478,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                 ),
                 decoration: BoxDecoration(
                   color: _amber.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: _amber.withValues(alpha: 0.25)),
                   boxShadow: [
                     BoxShadow(
@@ -564,7 +575,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
     decoration: BoxDecoration(
       color: _cyan.withValues(alpha: 0.09),
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: _cyan.withValues(alpha: 0.22)),
     ),
     child: Text(
@@ -668,7 +679,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: const Color(0xFF0E1623),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: flagged
               ? const Color(0xFFFB7185).withValues(alpha: 0.5)
@@ -684,7 +695,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
                 decoration: BoxDecoration(
                   color: _cyan.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '${_text('CÂU HỎI', 'QUESTION')} ${(index + 1).toString().padLeft(2, '0')}',
@@ -766,13 +777,13 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                     vertical: 12,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(
                       color: _cyan.withValues(alpha: 0.18),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: _cyan),
                   ),
                 ),
@@ -810,15 +821,15 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
       color: selected
           ? _cyan.withValues(alpha: 0.1)
           : const Color(0xFF111827).withValues(alpha: 0.6),
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: () =>
             _selectAnswer(question, String.fromCharCode(65 + optionIndex)),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: selected ? _cyan.withValues(alpha: 0.65) : Colors.white10,
             ),
@@ -877,7 +888,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
 
   BoxDecoration _panelDecoration() => BoxDecoration(
     color: _panel.withValues(alpha: 0.84),
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(16),
     border: Border.all(color: _cyan.withValues(alpha: 0.18)),
     boxShadow: [
       BoxShadow(
@@ -982,7 +993,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: const Color(0xFF08111C),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: _cyan.withValues(alpha: 0.15)),
         ),
         child: Column(
@@ -1353,11 +1364,11 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
             fillColor: const Color(0xFF0B121A),
             contentPadding: const EdgeInsets.symmetric(vertical: 9),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: _cyan.withValues(alpha: 0.15)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: _cyan.withValues(alpha: 0.15)),
             ),
           ),
@@ -1368,7 +1379,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
             decoration: BoxDecoration(
               color: _cyan.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: _cyan.withValues(alpha: 0.2)),
             ),
             child: Row(
@@ -1429,14 +1440,14 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                       onTap: () => setState(
                         () => _selectedElementNumber = element.atomicNumber,
                       ),
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.circular(8),
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? _cyan.withValues(alpha: 0.2)
                               : const Color(0xFF0B121A),
-                          borderRadius: BorderRadius.circular(7),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isSelected
                                 ? _cyan.withValues(alpha: 0.7)
@@ -1501,7 +1512,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
           const Spacer(),
           IconButton(
             tooltip: _text('Xóa giấy nháp', 'Clear scratchpad'),
-            onPressed: () => setState(_noteStrokes.clear),
+            onPressed: _clearScratchpad,
             visualDensity: VisualDensity.compact,
             icon: const Icon(
               Icons.delete_outline_rounded,
@@ -1555,7 +1566,7 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
       const SizedBox(height: 6),
       Expanded(
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(8),
           child: GestureDetector(
             key: _scratchpadKey,
             onPanStart: (details) {
@@ -1569,18 +1580,19 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                 width: _eraserEnabled ? _penWidth * 4 : _penWidth,
                 points: [point],
               );
-              setState(() => _noteStrokes.add(_activeStroke!));
+              _noteStrokes.add(_activeStroke!);
+              _scratchpadHasStrokes.value = true;
+              _scratchpadRevision.value++;
             },
             onPanUpdate: (details) {
               final box =
                   _scratchpadKey.currentContext?.findRenderObject()
                       as RenderBox?;
               if (box == null || _activeStroke == null) return;
-              setState(
-                () => _activeStroke!.points.add(
-                  box.globalToLocal(details.globalPosition),
-                ),
+              _activeStroke!.points.add(
+                box.globalToLocal(details.globalPosition),
               );
+              _scratchpadRevision.value++;
             },
             onPanEnd: (_) => _activeStroke = null,
             child: Container(
@@ -1589,24 +1601,30 @@ class _StudentExamWorkspaceState extends State<StudentExamWorkspace> {
                 color: const Color(0xFF0D1724),
                 border: Border.all(color: _cyan.withValues(alpha: 0.14)),
               ),
-              child: CustomPaint(
-                painter: _ScratchpadPainter(
-                  strokes: _noteStrokes,
-                  backgroundColor: const Color(0xFF0D1724),
-                ),
-                child: Center(
-                  child: _noteStrokes.isEmpty
-                      ? Text(
-                          _text(
-                            'Vẽ hoặc ghi chú tại đây',
-                            'Draw or write here',
-                          ),
-                          style: const TextStyle(
-                            color: Color(0xFF526174),
-                            fontSize: 11,
-                          ),
-                        )
-                      : const SizedBox.expand(),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _ScratchpadPainter(
+                    strokes: _noteStrokes,
+                    backgroundColor: const Color(0xFF0D1724),
+                    repaint: _scratchpadRevision,
+                  ),
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _scratchpadHasStrokes,
+                    builder: (context, hasStrokes, _) => Center(
+                      child: hasStrokes
+                          ? const SizedBox.expand()
+                          : Text(
+                              _text(
+                                'Vẽ hoặc ghi chú tại đây',
+                                'Draw or write here',
+                              ),
+                              style: const TextStyle(
+                                color: Color(0xFF526174),
+                                fontSize: 11,
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1658,10 +1676,11 @@ class _NoteStroke {
 }
 
 class _ScratchpadPainter extends CustomPainter {
-  const _ScratchpadPainter({
+  _ScratchpadPainter({
     required this.strokes,
     required this.backgroundColor,
-  });
+    required Listenable repaint,
+  }) : super(repaint: repaint);
 
   final List<_NoteStroke> strokes;
   final Color backgroundColor;
@@ -1691,5 +1710,7 @@ class _ScratchpadPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ScratchpadPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _ScratchpadPainter oldDelegate) =>
+      oldDelegate.strokes != strokes ||
+      oldDelegate.backgroundColor != backgroundColor;
 }

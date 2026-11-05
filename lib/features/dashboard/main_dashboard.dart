@@ -1,8 +1,11 @@
+// Lucian UX/UI Prompt #037 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#037
+// Lucian UX/UI Prompt #040 · MIT License (c) 2026 Seokwoooo · https://lucianlabs.dev/uxui-prompt/#040
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show KeyDownEvent, LogicalKeyboardKey;
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -12,6 +15,7 @@ import 'package:responsive_builder/responsive_builder.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:astatine_dashboard/core/branding/app_branding_assets.dart';
 import 'package:astatine_dashboard/core/localization/app_localizations.dart';
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/core/theme/app_theme.dart';
@@ -27,8 +31,6 @@ import 'package:astatine_dashboard/features/chemistry/virtual_lab.dart';
 import 'package:astatine_dashboard/features/classroom/astatine_discord_dashboard.dart';
 import 'package:astatine_dashboard/features/community/study_group.dart';
 import 'package:astatine_dashboard/features/admin/admin_terminal.dart';
-import 'package:astatine_dashboard/features/flashcards/flashcards_dashboard.dart';
-
 
 import 'package:astatine_dashboard/features/dashboard/kiosk_mode_service.dart';
 import 'package:astatine_dashboard/features/dashboard/mini_news_ticker.dart';
@@ -147,6 +149,7 @@ class MainLayoutScreen extends StatefulWidget {
     this.isVietnamese = true,
     this.currentUserId,
     this.updateLogStore,
+    this.brandingAssetLoader,
   });
 
   final String selectedTheme;
@@ -157,6 +160,7 @@ class MainLayoutScreen extends StatefulWidget {
   final bool isVietnamese;
   final String? currentUserId;
   final ReleaseNotesStore? updateLogStore;
+  final AppBrandingAssetsLoader? brandingAssetLoader;
 
   @override
   State<MainLayoutScreen> createState() => _MainLayoutScreenState();
@@ -164,12 +168,13 @@ class MainLayoutScreen extends StatefulWidget {
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
   int _selectedIndex = 0;
+  int _navigationDirection = 1;
   late String _selectedLanguage = widget.isVietnamese ? 'vi' : 'en';
   bool _isWorkspaceActive = false;
   bool _workspaceFullscreenWasLost = false;
   bool _isSidebarCollapsed = false;
-  bool _isAppsExpanded = false;
   String _subscriptionTier = 'FREE';
+  bool get _isMonochromeDark => widget.selectedTheme == 'Dark';
   LabSearchItem? _pendingLabSearchItem;
   final _sidebarScrollController = SmoothMouseScrollController();
   final _kioskModeService = KioskModeService();
@@ -312,7 +317,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     strings.market,
     strings.settings,
     strings.classrooms,
-    'Flashcard',
   ];
 
   static const _menuSearchTerms = [
@@ -325,7 +329,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     'Market Chợ marketplace items',
     'Settings Cài đặt',
     'Classrooms Lớp học classrooms groups',
-    'Flashcard Thẻ ghi nhớ học tập',
   ];
 
   List<LabSearchItem> get _dashboardSearchItems => [
@@ -372,7 +375,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   }
 
   void _openMainScreen(int index) {
-    setState(() => _selectedIndex = index);
+    if (index == _selectedIndex) return;
+    setState(() {
+      _navigationDirection = index > _selectedIndex ? 1 : -1;
+      _selectedIndex = index;
+    });
   }
 
   Future<void> _openWorkspace() async {
@@ -518,8 +525,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                 final sidebarWidth = compact
                     ? 72.0
                     : _isSidebarCollapsed
-                    ? 88.0
-                    : 260.0;
+                    ? 76.0
+                    : 224.0;
                 return Stack(
                   clipBehavior: Clip.hardEdge,
                   children: [
@@ -542,13 +549,26 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                                 _buildCommandHeader(compact),
                               Expanded(
                                 child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 280),
+                                  duration:
+                                      MediaQuery.disableAnimationsOf(context)
+                                      ? Duration.zero
+                                      : const Duration(milliseconds: 240),
+                                  reverseDuration:
+                                      MediaQuery.disableAnimationsOf(context)
+                                      ? Duration.zero
+                                      : const Duration(milliseconds: 180),
                                   switchInCurve: Curves.easeOutCubic,
                                   switchOutCurve: Curves.easeInCubic,
                                   transitionBuilder: (child, animation) {
+                                    final isIncoming =
+                                        child.key ==
+                                        ValueKey('$_selectedIndex');
+                                    final direction = isIncoming
+                                        ? _navigationDirection
+                                        : -_navigationDirection;
                                     final slide = animation.drive(
                                       Tween<Offset>(
-                                        begin: const Offset(0, 0.025),
+                                        begin: Offset(direction.toDouble(), 0),
                                         end: Offset.zero,
                                       ).chain(
                                         CurveTween(curve: Curves.easeOutCubic),
@@ -572,6 +592,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                                             strings: strings,
                                             userName: _currentUserName,
                                             isVietnamese: _isVietnamese,
+                                            brandingAssetLoader:
+                                                widget.brandingAssetLoader,
                                             onOpenVirtualLab: () =>
                                                 _openMainScreen(2),
                                             onOpenAssignments: () =>
@@ -624,13 +646,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                                             isVietnamese: _isVietnamese,
                                             languageCode: _selectedLanguage,
                                           )
-                                         : _selectedIndex == 5
-                                         ? AchievementCenterScreen(
-                                             isVietnamese: _isVietnamese,
-                                           )
-                                         : _selectedIndex == 9
-                                         ? const FlashcardsDashboardScreen()
-                                         : Center(
+                                        : _selectedIndex == 5
+                                        ? AchievementCenterScreen(
+                                            isVietnamese: _isVietnamese,
+                                          )
+                                        : Center(
                                             child: Text(
                                               '${strings.screenInProgress}: "${_menuTitles[_selectedIndex]}"',
                                               style: TextStyle(
@@ -647,7 +667,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                         ),
                       ),
                     ),
-                    Positioned(
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 600),
+                      curve: const Cubic(0.34, 1.45, 0.64, 1),
                       key: const Key('focus-navigation-panel'),
                       left: 0,
                       top: 0,
@@ -700,7 +722,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           ),
           decoration: BoxDecoration(
             color: _palette.card.withValues(alpha: 0.78),
-            borderRadius: BorderRadius.circular(17),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: _palette.border.withValues(alpha: 0.78)),
             boxShadow: [
               BoxShadow(
@@ -719,7 +741,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                   height: 38,
                   decoration: BoxDecoration(
                     color: _palette.accent.withValues(alpha: 0.09),
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: _palette.accent.withValues(alpha: 0.18),
                     ),
@@ -890,100 +912,57 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                     else if (!isMobile)
                       _buildCompactSubscriptionAccountButton(),
                     if (!rail) const Gap(10),
-                    Container(
-                      padding: EdgeInsets.all(rail ? 7 : 11),
-                      decoration: BoxDecoration(
-                        color: _palette.card.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                          color: _palette.border.withValues(alpha: 0.82),
+                    if (rail)
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: _palette.card.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _palette.border.withValues(alpha: 0.82),
+                          ),
                         ),
-                        boxShadow: _palette.glowEnabled
-                            ? [
-                                BoxShadow(
-                                  color: _palette.accent.withValues(
-                                    alpha: 0.04,
-                                  ),
-                                  blurRadius: 20,
-                                  spreadRadius: -8,
-                                ),
-                              ]
-                            : const [],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: rail
-                            ? MainAxisAlignment.center
-                            : MainAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: _palette.accent.withValues(alpha: 0.7),
-                              ),
-                            ),
-                            child: UserProfileAvatar(
+                        child: Center(
+                          child: UserProfileAvatar(
+                            key: const Key('sidebar-profile-avatar'),
+                            userId: widget.currentUserId,
+                            radius: 14,
+                            fallbackText: _currentUserInitial,
+                            languageCode: _selectedLanguage,
+                          ),
+                        ),
+                      )
+                    else
+                      AnimatedBuilder(
+                        animation: UserProfileStore.instance,
+                        builder: (context, _) {
+                          final profile = widget.currentUserId == null
+                              ? null
+                              : UserProfileStore.instance.profileFor(
+                                  widget.currentUserId!,
+                                );
+                          final name = (profile?['full_name'] as String?)
+                              ?.trim();
+                          return _SidebarAccountSwitcher(
+                            palette: _palette,
+                            name: name?.isNotEmpty == true
+                                ? name!
+                                : _currentUserName,
+                            role: _currentUserRole,
+                            tier: _subscriptionTier,
+                            isVietnamese: _isVietnamese,
+                            avatar: UserProfileAvatar(
                               key: const Key('sidebar-profile-avatar'),
                               userId: widget.currentUserId,
-                              radius: rail ? 14 : 17,
+                              radius: 17,
                               fallbackText: _currentUserInitial,
                               languageCode: _selectedLanguage,
                             ),
-                          ),
-                          if (!rail) ...[
-                            const Gap(10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  AnimatedBuilder(
-                                    animation: UserProfileStore.instance,
-                                    builder: (context, _) {
-                                      final profile =
-                                          widget.currentUserId == null
-                                          ? null
-                                          : UserProfileStore.instance
-                                                .profileFor(
-                                                  widget.currentUserId!,
-                                                );
-                                      final name =
-                                          (profile?['full_name'] as String?)
-                                              ?.trim();
-                                      return _SubscriptionNameLabel(
-                                        name: name?.isNotEmpty == true
-                                            ? name!
-                                            : _currentUserName,
-                                        tier: _subscriptionTier,
-                                        defaultColor: _palette.primaryText,
-                                      );
-                                    },
-                                  ),
-                                  Text(
-                                    _currentUserRole.toUpperCase(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: _palette.secondaryText,
-                                          fontSize: 8,
-                                          letterSpacing: 0.9,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              _lucideArrowUpRight,
-                              size: 14,
-                              color: _palette.secondaryText,
-                            ),
-                          ],
-                        ],
+                            onSettings: () => _openMainScreen(7),
+                            onUpgrade: _showPricingPlans,
+                          );
+                        },
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -1037,7 +1016,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               unawaited(_toggleStandaloneFullscreen());
             }
           },
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -1049,7 +1028,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                   const Color(0xFF7000FF).withValues(alpha: 0.12),
                 ],
               ),
-              borderRadius: BorderRadius.circular(13),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _palette.accent.withValues(alpha: 0.38),
               ),
@@ -1083,18 +1062,28 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   Widget _buildSubscriptionAccountButton() {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(11),
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
         key: const Key('subscription-account-pricing'),
         onTap: _showPricingPlans,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(8),
+        overlayColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.pressed)) {
+            return Colors.white.withValues(alpha: 0.24);
+          }
+          if (states.contains(WidgetState.hovered) ||
+              states.contains(WidgetState.focused)) {
+            return Colors.white.withValues(alpha: 0.13);
+          }
+          return null;
+        }),
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [_subscriptionAccentLight, _subscriptionAccent],
             ),
-            borderRadius: BorderRadius.circular(11),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: _subscriptionAccentLight),
             boxShadow: [
               BoxShadow(
@@ -1188,33 +1177,36 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     const headerExtent = 32.0;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final contentHeight = itemExtent * (9 + (_isAppsExpanded && !compact ? 1 : 0)) + (compact ? 0 : headerExtent);
+        const navigationItemCount = 7;
+        final contentHeight =
+            itemExtent * navigationItemCount + (compact ? 0 : headerExtent);
         final menu = SizedBox(
           height: contentHeight,
           child: Stack(
             children: [
               AnimatedPositioned(
                 key: const Key('navigation-selection-indicator'),
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeInOutCubic,
-                top:
-                    (compact ? 0 : headerExtent) +
-                    (_selectedIndex == 9
-                        ? (compact
-                            ? 7 * itemExtent
-                            : (7 * itemExtent + 46))
-                        : _selectedIndex * itemExtent) +
-                    3,
+                duration: const Duration(milliseconds: 500),
+                curve: const Cubic(0.34, 1.45, 0.64, 1),
+                top: _selectedIndex >= 7
+                    ? -60
+                    : (compact ? 0 : headerExtent) +
+                          _selectedIndex * itemExtent +
+                          3,
                 left: compact ? 6 : 11,
                 right: compact ? 6 : 11,
                 height: 46,
                 child: IgnorePointer(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: _palette.accent.withValues(alpha: 0.095),
-                      borderRadius: BorderRadius.circular(12),
+                      color: _isMonochromeDark
+                          ? const Color(0xFF3F3F46)
+                          : _palette.accent.withValues(alpha: 0.095),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _palette.accent.withValues(alpha: 0.28),
+                        color: _isMonochromeDark
+                            ? const Color(0xFF52525B)
+                            : _palette.accent.withValues(alpha: 0.28),
                       ),
                       boxShadow: _palette.glowEnabled
                           ? [
@@ -1304,15 +1296,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                     strings.market,
                     compact: compact,
                   ),
-                  _buildNavItem(
-                    7,
-                    _lucideSettings,
-                    strings.settings,
-                    compact: compact,
-                  ),
-                   _buildAppsMenuSection(compact: compact),
-                 ],
-               ),
+                ],
+              ),
             ],
           ),
         );
@@ -1335,59 +1320,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   Widget _buildAchievementsNavItem({bool compact = false}) =>
       _buildNavItem(5, _lucideTrophy, _menuTitles[5], compact: compact);
 
-  Widget _buildAppsMenuSection({bool compact = false}) {
-    if (compact) {
-      return _buildNavItem(9, Icons.style_rounded, 'Flashcard', compact: true);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => setState(() => _isAppsExpanded = !_isAppsExpanded),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              height: 46,
-              margin: const EdgeInsets.symmetric(horizontal: 11, vertical: 3),
-              padding: const EdgeInsets.symmetric(horizontal: 11),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: _isAppsExpanded ? _palette.accent.withValues(alpha: 0.06) : Colors.transparent,
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.apps_rounded, color: _palette.secondaryText, size: 20),
-                  const Gap(12),
-                  Expanded(
-                    child: Text(
-                      _isVietnamese ? 'Ứng dụng (Apps)' : 'Apps',
-                      style: TextStyle(
-                        color: _palette.primaryText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    _isAppsExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                    color: _palette.secondaryText,
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (_isAppsExpanded)
-          Padding(
-            padding: const EdgeInsets.only(left: 12),
-            child: _buildNavItem(9, Icons.style_rounded, 'Flashcard', compact: false),
-          ),
-      ],
-    );
-  }
-
   Widget _buildNavItem(
     int index,
     IconData icon,
@@ -1407,14 +1339,30 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               key: ValueKey('dashboard-nav-$index'),
               mouseCursor: SystemMouseCursors.none,
               onTap: () => _openMainScreen(index),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
+              overlayColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.pressed)) {
+                  return (_isMonochromeDark
+                          ? const Color(0xFF52525B)
+                          : _palette.accent)
+                      .withValues(alpha: 0.38);
+                }
+                if (states.contains(WidgetState.hovered) ||
+                    states.contains(WidgetState.focused)) {
+                  return (_isMonochromeDark
+                          ? const Color(0xFF3F3F46)
+                          : _palette.accent)
+                      .withValues(alpha: 0.2);
+                }
+                return null;
+              }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: 46,
                 padding: EdgeInsets.symmetric(horizontal: compact ? 0 : 11),
                 decoration: BoxDecoration(
                   color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.transparent),
                 ),
                 child: Row(
@@ -1432,18 +1380,25 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                     if (!compact) ...[
                       const Gap(11),
                       Expanded(
-                        child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 180),
-                          style: TextStyle(
-                            color: isSelected
-                                ? _palette.canvasText
-                                : _palette.canvasMutedText,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            fontSize: 12,
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: 1),
+                          duration: const Duration(milliseconds: 300),
+                          curve: const Cubic(0.2, 0.8, 0.2, 1),
+                          builder: (context, reveal, child) =>
+                              Opacity(opacity: reveal, child: child),
+                          child: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 180),
+                            style: TextStyle(
+                              color: isSelected
+                                  ? _palette.canvasText
+                                  : _palette.canvasMutedText,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                            child: Text(title, overflow: TextOverflow.ellipsis),
                           ),
-                          child: Text(title, overflow: TextOverflow.ellipsis),
                         ),
                       ),
                     ],
@@ -1458,31 +1413,513 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Achievements Sidebar Nav Item with Hover Sub-menu
-class _SubscriptionNameLabel extends StatelessWidget {
-  const _SubscriptionNameLabel({
+class _SidebarAccountSwitcher extends StatefulWidget {
+  const _SidebarAccountSwitcher({
+    required this.palette,
     required this.name,
+    required this.role,
     required this.tier,
-    required this.defaultColor,
+    required this.isVietnamese,
+    required this.avatar,
+    required this.onSettings,
+    required this.onUpgrade,
   });
 
+  final AstatinePalette palette;
   final String name;
+  final String role;
   final String tier;
-  final Color defaultColor;
+  final bool isVietnamese;
+  final Widget avatar;
+  final VoidCallback onSettings;
+  final VoidCallback onUpgrade;
+
+  @override
+  State<_SidebarAccountSwitcher> createState() =>
+      _SidebarAccountSwitcherState();
+}
+
+class _SidebarAccountSwitcherState extends State<_SidebarAccountSwitcher>
+    with SingleTickerProviderStateMixin {
+  final _overlayController = OverlayPortalController();
+  final _layerLink = LayerLink();
+  final Object _tapRegionGroup = Object();
+  final _chipFocusNode = FocusNode(debugLabel: 'Sidebar account card');
+  late final List<FocusNode> _menuFocusNodes = List.generate(
+    2,
+    (index) => FocusNode(debugLabel: 'Sidebar account menu item $index'),
+  );
+  late final AnimationController _menuAnimationController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+    reverseDuration: const Duration(milliseconds: 250),
+  );
+  late final Animation<double> _menuOpacityAnimation = CurvedAnimation(
+    parent: _menuAnimationController,
+    curve: Curves.easeOutCubic,
+  );
+  late final Animation<double> _menuScaleAnimation =
+      Tween<double>(begin: 0.9, end: 1).animate(
+        CurvedAnimation(
+          parent: _menuAnimationController,
+          curve: const Cubic(0.34, 1.45, 0.64, 1),
+        ),
+      );
+  Timer? _hideOverlayTimer;
+  bool _isOpen = false;
+  int? _hoveredIndex;
+
+  @override
+  void dispose() {
+    _hideOverlayTimer?.cancel();
+    for (final focusNode in _menuFocusNodes) {
+      focusNode.dispose();
+    }
+    _chipFocusNode.dispose();
+    _menuAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _open({bool focusFirst = false}) {
+    _hideOverlayTimer?.cancel();
+    setState(() => _isOpen = true);
+    _overlayController.show();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _menuAnimationController.value = 1;
+    } else {
+      _menuAnimationController.forward(from: 0);
+    }
+    if (focusFirst) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _isOpen) _menuFocusNodes.first.requestFocus();
+      });
+    }
+  }
+
+  void _close({bool restoreFocus = false}) {
+    if (!mounted || !_isOpen) return;
+    _hideOverlayTimer?.cancel();
+    setState(() => _isOpen = false);
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _menuAnimationController.value = 0;
+      _overlayController.hide();
+    } else {
+      _menuAnimationController.reverse();
+      _hideOverlayTimer = Timer(const Duration(milliseconds: 600), () {
+        if (mounted) _overlayController.hide();
+      });
+    }
+    if (restoreFocus) _chipFocusNode.requestFocus();
+  }
+
+  KeyEventResult _handleChipKeyEvent(FocusNode _, KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.ignored;
+    }
+    _open(focusFirst: true);
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handleMenuKeyEvent(int index, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      _close(restoreFocus: true);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      final direction = event.logicalKey == LogicalKeyboardKey.arrowDown
+          ? 1
+          : -1;
+      final nextIndex =
+          (index + direction + _menuFocusNodes.length) % _menuFocusNodes.length;
+      _menuFocusNodes[nextIndex].requestFocus();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SubscriptionNameEffect(
-      name: name,
-      tier: tier,
-      defaultColor: defaultColor,
+    final palette = widget.palette;
+    return Semantics(
+      container: true,
+      label: 'Account menu for ${widget.name}',
+      hint: widget.isVietnamese
+          ? 'Nhấn để mở hoặc đóng menu tài khoản'
+          : 'Open or close the account menu',
+      child: OverlayPortal(
+        controller: _overlayController,
+        overlayChildBuilder: (context) => CompositedTransformFollower(
+          link: _layerLink,
+          showWhenUnlinked: false,
+          targetAnchor: Alignment.topLeft,
+          followerAnchor: Alignment.bottomLeft,
+          offset: const Offset(0, -10),
+          child: Material(
+            color: Colors.transparent,
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              widthFactor: 1,
+              heightFactor: 1,
+              child: TapRegion(
+                groupId: _tapRegionGroup,
+                child: FadeTransition(
+                  key: const Key('sidebar-account-menu-fade'),
+                  opacity: _menuOpacityAnimation,
+                  child: ScaleTransition(
+                    scale: _menuScaleAnimation,
+                    alignment: Alignment.bottomLeft,
+                    child: SizedBox(
+                      key: const Key('sidebar-account-menu'),
+                      width: 196,
+                      child: _buildAccountMenu(palette),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: TapRegion(
+          groupId: _tapRegionGroup,
+          onTapOutside: (_) => _close(),
+          child: CompositedTransformTarget(
+            link: _layerLink,
+            child: Material(
+              color: Colors.transparent,
+              child: Focus(
+                onKeyEvent: _handleChipKeyEvent,
+                child: InkWell(
+                  key: const Key('sidebar-profile-card'),
+                  focusNode: _chipFocusNode,
+                  onTap: () {
+                    if (_isOpen) {
+                      _close();
+                    } else {
+                      _open();
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(22),
+                  child: Ink(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: palette.card.withValues(alpha: 0.82),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: palette.border),
+                      boxShadow: palette.glowEnabled
+                          ? [
+                              BoxShadow(
+                                color: palette.accent.withValues(alpha: 0.05),
+                                blurRadius: 20,
+                                spreadRadius: -8,
+                              ),
+                            ]
+                          : const [],
+                    ),
+                    child: Row(
+                      children: [
+                        widget.avatar,
+                        const Gap(12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: palette.primaryText,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                widget.role.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: palette.secondaryText,
+                                  fontSize: 9,
+                                  letterSpacing: 0.7,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        AnimatedRotation(
+                          turns: _isOpen ? 0.5 : 0,
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 300),
+                          curve: const Cubic(0.34, 1.45, 0.64, 1),
+                          child: Icon(
+                            Icons.keyboard_arrow_up_rounded,
+                            color: palette.secondaryText,
+                            size: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountMenu(AstatinePalette palette) {
+    final animationsDisabled = MediaQuery.disableAnimationsOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: palette.card,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: palette.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.24),
+              blurRadius: 34,
+              offset: const Offset(0, -10),
+            ),
+          ],
+        ),
+        child: Semantics(
+          container: true,
+          label: widget.isVietnamese ? 'Tài khoản' : 'Account',
+          child: Focus(
+            canRequestFocus: false,
+            onKeyEvent: (node, event) {
+              final focusedIndex = _menuFocusNodes.indexWhere(
+                (focusNode) => focusNode.hasFocus,
+              );
+              if (focusedIndex < 0) return KeyEventResult.ignored;
+              return _handleMenuKeyEvent(focusedIndex, event);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        widget.isVietnamese ? 'TÀI KHOẢN' : 'ACCOUNT',
+                        style: TextStyle(
+                          color: palette.secondaryText,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Stack(
+                    children: [
+                      AnimatedPositioned(
+                        duration: animationsDisabled
+                            ? Duration.zero
+                            : const Duration(milliseconds: 300),
+                        curve: const Cubic(0.34, 1.45, 0.64, 1),
+                        top: _hoveredIndex == null ? -60 : _hoveredIndex! * 52,
+                        left: 0,
+                        right: 0,
+                        height: 52,
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: palette.accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: palette.accent.withValues(alpha: 0.1),
+                                  blurRadius: 12,
+                                  spreadRadius: -5,
+                                ),
+                              ],
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                width: 3,
+                                margin: const EdgeInsets.symmetric(
+                                  vertical: 11,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: palette.accent,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildMenuItem(
+                            index: 0,
+                            icon: Icons.workspace_premium_outlined,
+                            title: widget.isVietnamese
+                                ? 'Gói tài khoản'
+                                : 'Subscription',
+                            subtitle: widget.tier,
+                            onTap: () {
+                              _close();
+                              widget.onUpgrade();
+                            },
+                          ),
+                          _buildMenuItem(
+                            index: 1,
+                            icon: Icons.person_outline_rounded,
+                            title: widget.isVietnamese
+                                ? 'Hồ sơ & Cài đặt'
+                                : 'Profile & Settings',
+                            subtitle: widget.role.toUpperCase(),
+                            onTap: () {
+                              _close();
+                              widget.onSettings();
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required int index,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    final palette = widget.palette;
+    final animationsDisabled = MediaQuery.disableAnimationsOf(context);
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) => _handleMenuKeyEvent(index, event),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hoveredIndex = index),
+        onExit: (_) {
+          if (!_menuFocusNodes[index].hasFocus) {
+            setState(() => _hoveredIndex = null);
+          }
+        },
+        child: Semantics(
+          button: true,
+          label: '$title, $subtitle',
+          child: Material(
+            color: Colors.transparent,
+            child: AnimatedBuilder(
+              animation: _menuAnimationController,
+              child: InkWell(
+                focusNode: _menuFocusNodes[index],
+                onFocusChange: (hasFocus) {
+                  if (hasFocus) {
+                    setState(() => _hoveredIndex = index);
+                  } else if (_hoveredIndex == index) {
+                    setState(() => _hoveredIndex = null);
+                  }
+                },
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  height: 52,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: [
+                        Icon(icon, color: palette.secondaryText, size: 20),
+                        const Gap(12),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: palette.primaryText,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: palette.secondaryText,
+                                  fontSize: 9.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_outward_rounded,
+                          color: palette.secondaryText,
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              builder: (context, child) {
+                if (animationsDisabled) return child!;
+                final elapsed = _isOpen
+                    ? _menuAnimationController.value * 200 - index * 12
+                    : _menuAnimationController.value * 600 - index * 32;
+                final progress = (elapsed / (_isOpen ? 180 : 550)).clamp(
+                  0.0,
+                  1.0,
+                );
+                final slideProgress = const Cubic(
+                  0.34,
+                  1.45,
+                  0.64,
+                  1,
+                ).transform(progress);
+                return Opacity(
+                  opacity: Curves.easeOut.transform(progress),
+                  child: Transform.translate(
+                    offset: Offset(0, 8 * (1 - slideProgress)),
+                    child: child,
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _PricingPlansDialog extends StatefulWidget {
-  const _PricingPlansDialog({this.onTierChanged});
+  const _PricingPlansDialog({required this.onTierChanged});
 
   final ValueChanged<String>? onTierChanged;
 
@@ -1714,7 +2151,7 @@ class _PricingPlansDialogState extends State<_PricingPlansDialog> {
                         height: 42,
                         decoration: BoxDecoration(
                           color: const Color(0xFF43D9A3).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(13),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: const Color(0xFF43D9A3)
                                 .withValues(alpha: 0.24),
@@ -1804,7 +2241,7 @@ class _PricingPlansDialogState extends State<_PricingPlansDialog> {
                                     ? const Color(0xFFFF707A)
                                     : const Color(0xFF43D9A3))
                                 .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(9),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color:
                               (_feedbackIsError
@@ -1948,7 +2385,7 @@ class _PricingPlanCard extends StatelessWidget {
         color: plan.isFeatured
             ? const Color(0xFF111D2B)
             : const Color(0xFF101722),
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: plan.accent.withValues(alpha: plan.isFeatured ? 0.78 : 0.25),
           width: plan.isFeatured ? 1.4 : 1,
@@ -2080,7 +2517,7 @@ class _PricingPlanCard extends StatelessWidget {
                       ? null
                       : BorderSide(color: plan.accent.withValues(alpha: 0.32)),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   textStyle: const TextStyle(
                     fontSize: 11,
@@ -2111,6 +2548,7 @@ class DashboardContent extends StatefulWidget {
   final VoidCallback onOpenAssignments;
   final VoidCallback onOpenProjectHub;
   final VoidCallback onOpenAppHub;
+  final AppBrandingAssetsLoader? brandingAssetLoader;
 
   const DashboardContent({
     super.key,
@@ -2121,6 +2559,7 @@ class DashboardContent extends StatefulWidget {
     required this.onOpenAssignments,
     required this.onOpenProjectHub,
     required this.onOpenAppHub,
+    this.brandingAssetLoader,
   });
 
   @override
@@ -2143,6 +2582,19 @@ class _DashboardContentState extends State<DashboardContent> {
   void initState() {
     super.initState();
     _scrollController.addListener(_handleScroll);
+    _loadBrandingAssets();
+  }
+
+  void _loadBrandingAssets() {
+    final loader = widget.brandingAssetLoader;
+    if (loader == null) return;
+    unawaited(() async {
+      try {
+        AppBrandingAssets.publish(await loader());
+      } catch (error) {
+        debugPrint('Unable to load public app branding images: $error');
+      }
+    }());
   }
 
   void _handleScroll() {
@@ -2496,7 +2948,7 @@ class _HeroNewsTickerState extends State<_HeroNewsTicker> {
       child: Padding(
         padding: const EdgeInsets.all(1.5),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
               PageView.builder(
@@ -2548,7 +3000,7 @@ class _HeroNewsTickerState extends State<_HeroNewsTicker> {
                           color: active
                               ? palette.accent
                               : palette.accent.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       );
                     }),
@@ -2754,7 +3206,7 @@ class _WelcomeNoteIllustration extends StatelessWidget {
       key: const Key('welcome-note-illustration'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -2773,69 +3225,96 @@ class _WelcomeNoteIllustration extends StatelessWidget {
           ),
         ],
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final widthScale = constraints.maxWidth / 220;
-          final heightScale = constraints.maxHeight / 190;
-          final scale = (widthScale < heightScale ? widthScale : heightScale)
-              .clamp(0.1, 1.25)
-              .toDouble();
-          return ExcludeSemantics(
-            child: Center(
-              child: SizedBox(
-                width: 220 * scale,
-                height: 190 * scale,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned(
-                      left: 48 * scale,
-                      top: 14 * scale,
-                      child: Transform.rotate(
-                        angle: -0.055,
-                        child: _CartoonNote(scale: scale, palette: palette),
+      child: ValueListenableBuilder<Map<BrandingAssetSlot, BrandingImageSetting>>(
+        valueListenable: AppBrandingAssets.current,
+        builder: (context, assets, _) => LayoutBuilder(
+          builder: (context, constraints) {
+            final widthScale = constraints.maxWidth / 220;
+            final heightScale = constraints.maxHeight / 190;
+            final scale = (widthScale < heightScale ? widthScale : heightScale)
+                .clamp(0.1, 1.25)
+                .toDouble();
+            return ExcludeSemantics(
+              child: Center(
+                child: SizedBox(
+                  width: 220 * scale,
+                  height: 190 * scale,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            left: 48 * scale,
+                            top: 14 * scale,
+                            child: Transform.rotate(
+                              angle: -0.055,
+                              child: _CartoonNote(
+                                scale: scale,
+                                palette: palette,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 25 * scale,
+                            top: 20 * scale,
+                            child: Transform.rotate(
+                              angle: 0.32,
+                              child: _CartoonPencil(scale: scale),
+                            ),
+                          ),
+                          Positioned(
+                            left: 22 * scale,
+                            top: 132 * scale,
+                            child: Transform.rotate(
+                              angle: -0.24,
+                              child: _CartoonEraser(scale: scale),
+                            ),
+                          ),
+                          Positioned(
+                            left: 26 * scale,
+                            top: 27 * scale,
+                            child: Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 18 * scale,
+                              color: palette.accent,
+                            ),
+                          ),
+                          Positioned(
+                            right: 19 * scale,
+                            bottom: 17 * scale,
+                            child: Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 13 * scale,
+                              color: const Color(0xFFF0A64A),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    Positioned(
-                      right: 25 * scale,
-                      top: 20 * scale,
-                      child: Transform.rotate(
-                        angle: 0.32,
-                        child: _CartoonPencil(scale: scale),
-                      ),
-                    ),
-                    Positioned(
-                      left: 22 * scale,
-                      top: 132 * scale,
-                      child: Transform.rotate(
-                        angle: -0.24,
-                        child: _CartoonEraser(scale: scale),
-                      ),
-                    ),
-                    Positioned(
-                      left: 26 * scale,
-                      top: 27 * scale,
-                      child: Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 18 * scale,
-                        color: palette.accent,
-                      ),
-                    ),
-                    Positioned(
-                      right: 19 * scale,
-                      bottom: 17 * scale,
-                      child: Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 13 * scale,
-                        color: const Color(0xFFF0A64A),
-                      ),
-                    ),
-                  ],
+                      if (assets[BrandingAssetSlot.overviewIllustration]
+                          case final imageSetting?)
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: BrandingNetworkImage(
+                              setting: imageSetting,
+                              errorBuilder: (context, error, stackTrace) {
+                                debugPrint(
+                                  'Unable to render the overview illustration: $error',
+                                );
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -3095,7 +3574,7 @@ class _HeroArticlePageState extends State<_HeroArticlePage> {
           imageUrl: art.imageUrl,
           palette: pal,
           isVietnamese: isVi,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           contentBottomPadding: 34,
           onTap: () async {
             final uri = Uri.tryParse(art.link);
@@ -3193,7 +3672,7 @@ class _HeroButtonState extends State<_HeroButton> {
                     ? widget.accent
                     : widget.accent.withValues(alpha: 0.88))
               : widget.accent.withValues(alpha: _hovered ? 0.14 : 0.08),
-          borderRadius: BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(16),
           border: widget.filled
               ? null
               : Border.all(color: widget.accent.withValues(alpha: 0.30)),
@@ -3209,10 +3688,10 @@ class _HeroButtonState extends State<_HeroButton> {
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(16),
           child: InkWell(
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(16),
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 44),
               child: Padding(
@@ -3444,7 +3923,7 @@ class _QuickStartPanel extends StatelessWidget {
                 height: 34,
                 decoration: BoxDecoration(
                   color: palette.accent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.bolt_rounded,
@@ -3529,7 +4008,7 @@ class _QuickStartAction extends StatelessWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 19),
                 ),
@@ -3590,7 +4069,7 @@ class _WorkspaceSectionHeader extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           color: palette.accent,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
               color: palette.accent.withValues(alpha: 0.44),
@@ -3673,14 +4152,14 @@ class _BentoCardState extends State<BentoCard> {
         curve: Curves.easeOutCubic,
         child: Material(
           color: palette.card,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           child: InkWell(
             mouseCursor: SystemMouseCursors.none,
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(20),
             hoverColor: accent.withValues(alpha: 0.07),
             child: HoverRipple(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(20),
               color: accent,
               child: Container(
                 constraints: BoxConstraints(
@@ -3689,7 +4168,7 @@ class _BentoCardState extends State<BentoCard> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: palette.card,
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: _hovered
                         ? accent.withValues(alpha: 0.8)
@@ -3715,7 +4194,7 @@ class _BentoCardState extends State<BentoCard> {
                           height: widget.featured ? 44 : 42,
                           decoration: BoxDecoration(
                             color: accent.withValues(alpha: 0.13),
-                            borderRadius: BorderRadius.circular(15),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Icon(widget.icon, color: accent, size: 22),
                         ),
@@ -3727,7 +4206,7 @@ class _BentoCardState extends State<BentoCard> {
                             color: _hovered
                                 ? accent.withValues(alpha: 0.14)
                                 : palette.background,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
                             _lucideArrowUpRight,

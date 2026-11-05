@@ -177,8 +177,12 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
         ).copyWith(
           primary: palette.accent,
           onPrimary: palette.accentText,
+          primaryContainer: isMonochromeDark ? palette.card : null,
+          onPrimaryContainer: isMonochromeDark ? palette.primaryText : null,
           secondary: palette.accent,
           onSecondary: palette.accentText,
+          secondaryContainer: isMonochromeDark ? interactiveSurface : null,
+          onSecondaryContainer: isMonochromeDark ? palette.primaryText : null,
           surface: palette.background,
           onSurface: palette.canvasText,
           onSurfaceVariant: palette.secondaryText,
@@ -257,6 +261,8 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
     );
     return ThemeData(
       useMaterial3: true,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       brightness: brightness,
       colorScheme: colorScheme,
       splashColor: palette.accent.withValues(alpha: 0.24),
@@ -291,12 +297,42 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
             ? Colors.black.withValues(alpha: 0.3)
             : palette.accent.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(
             color: isMonochromeDark
                 ? palette.border
                 : palette.border.withValues(alpha: 0.75),
             width: isCampus ? 2 : 1,
+          ),
+        ),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: palette.card,
+        indicatorColor: isMonochromeDark
+            ? interactiveSurface
+            : palette.accent.withValues(alpha: 0.18),
+        selectedIconTheme: IconThemeData(color: palette.accent),
+        unselectedIconTheme: IconThemeData(color: palette.secondaryText),
+        selectedLabelTextStyle: TextStyle(color: palette.primaryText),
+        unselectedLabelTextStyle: TextStyle(color: palette.secondaryText),
+      ),
+      navigationDrawerTheme: NavigationDrawerThemeData(
+        backgroundColor: palette.card,
+        indicatorColor: isMonochromeDark
+            ? interactiveSurface
+            : palette.accent.withValues(alpha: 0.18),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? palette.accent
+                : palette.secondaryText,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            color: states.contains(WidgetState.selected)
+                ? palette.primaryText
+                : palette.secondaryText,
           ),
         ),
       ),
@@ -371,7 +407,7 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
               shadowColor: palette.accent.withValues(alpha: 0.42),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               textStyle: TextStyle(
                 fontFamily: interFamily,
@@ -406,7 +442,7 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
               foregroundColor: palette.accentText,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               textStyle: TextStyle(
                 fontFamily: interFamily,
@@ -443,7 +479,7 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
           side: BorderSide(color: palette.border),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
       ),
@@ -454,19 +490,23 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
               ? interactiveSurface.withValues(alpha: 0.35)
               : palette.accent.withValues(alpha: 0.12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
       ),
       listTileTheme: ListTileThemeData(
         iconColor: palette.secondaryText,
         textColor: palette.primaryText,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: palette.card,
-        selectedColor: palette.accent.withValues(alpha: 0.26),
-        checkmarkColor: palette.accentText,
+        selectedColor: isMonochromeDark
+            ? interactiveSurface
+            : palette.accent.withValues(alpha: 0.26),
+        checkmarkColor: isMonochromeDark
+            ? palette.primaryText
+            : palette.accentText,
         side: BorderSide(color: palette.border.withValues(alpha: 0.8)),
         shape: const StadiumBorder(),
         labelStyle: TextStyle(color: palette.primaryText),
@@ -493,14 +533,46 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: palette.card,
-        indicatorColor: palette.accent.withValues(alpha: 0.18),
+        indicatorColor: isMonochromeDark
+            ? interactiveSurface
+            : palette.accent.withValues(alpha: 0.18),
         elevation: isMonochromeDark ? 2 : 0,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? palette.accent
+                : palette.secondaryText,
+          ),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             color: states.contains(WidgetState.selected)
                 ? palette.primaryText
                 : palette.secondaryText,
           ),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.disabled)
+                ? palette.secondaryText.withValues(alpha: 0.55)
+                : states.contains(WidgetState.hovered) ||
+                      states.contains(WidgetState.pressed) ||
+                      states.contains(WidgetState.focused)
+                ? palette.primaryText
+                : palette.secondaryText,
+          ),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) {
+              return interactiveSurface.withValues(alpha: 0.7);
+            }
+            if (states.contains(WidgetState.hovered) ||
+                states.contains(WidgetState.focused)) {
+              return interactiveSurface.withValues(alpha: 0.45);
+            }
+            return null;
+          }),
         ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
@@ -552,7 +624,7 @@ class AstatinePalette extends ThemeExtension<AstatinePalette> {
         contentTextStyle: TextStyle(color: palette.primaryText),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: palette.border),
         ),
       ),

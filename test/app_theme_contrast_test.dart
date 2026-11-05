@@ -76,6 +76,39 @@ void main() {
     expect(AstatinePalette.forName('Neon'), AstatinePalette.neon);
   });
 
+  test('Dark navigation and selection states retain visible contrast', () {
+    final theme = AstatinePalette.themeData('Dark');
+    final palette = AstatinePalette.dark;
+    final selectedNavigationBarIcon = theme.navigationBarTheme.iconTheme!
+        .resolve({WidgetState.selected})!;
+    final unselectedNavigationBarIcon = theme.navigationBarTheme.iconTheme!
+        .resolve({})!;
+    final drawerIcon = theme.navigationDrawerTheme.iconTheme!.resolve({
+      WidgetState.selected,
+    })!;
+    final iconButtonOverlay = theme.iconButtonTheme.style!.overlayColor!;
+    final selectedChip = theme.chipTheme;
+
+    expect(theme.colorScheme.onSecondaryContainer, palette.primaryText);
+    expect(theme.navigationBarTheme.indicatorColor, const Color(0xFF3F3F46));
+    expect(selectedNavigationBarIcon.color, palette.accent);
+    expect(unselectedNavigationBarIcon.color, palette.secondaryText);
+    expect(theme.navigationRailTheme.indicatorColor, const Color(0xFF3F3F46));
+    expect(theme.navigationRailTheme.selectedIconTheme?.color, palette.accent);
+    expect(theme.navigationDrawerTheme.indicatorColor, const Color(0xFF3F3F46));
+    expect(drawerIcon.color, palette.accent);
+    expect(selectedChip.selectedColor, const Color(0xFF3F3F46));
+    expect(selectedChip.checkmarkColor, palette.primaryText);
+    expect(
+      iconButtonOverlay.resolve({WidgetState.hovered}),
+      const Color(0xFF3F3F46).withValues(alpha: 0.45),
+    );
+    expect(
+      iconButtonOverlay.resolve({WidgetState.pressed}),
+      const Color(0xFF3F3F46).withValues(alpha: 0.7),
+    );
+  });
+
   test(
     'Matcha and Brown action colors remain distinguishable on light cards',
     () {

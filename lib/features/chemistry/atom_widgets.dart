@@ -289,7 +289,7 @@ class _PeriodicTablePanelState extends State<PeriodicTablePanel> {
                 filled: true,
                 fillColor: const Color(0xFF0B131C),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 9),
@@ -359,7 +359,7 @@ class _ElementCell extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(5),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: color.withValues(alpha: 0.52)),
     ),
     child: Stack(

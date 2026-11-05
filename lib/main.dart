@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:astatine_dashboard/core/branding/app_branding_assets.dart';
 import 'package:astatine_dashboard/core/platform/desktop_window_service.dart';
 import 'package:astatine_dashboard/features/auth/authentication.dart';
 
@@ -15,7 +16,7 @@ void main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqZmNtaXhoanFjZnBiaWdtZ3BzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4NjE1MzIsImV4cCI6MjEwNjQzNzUzMn0.w0uQ_HhEZCvI5YvbVM3l_RrfE2LV392QkZfLVgCVaaw',
   );
 
-  runApp(const MyApp());
+  runApp(MyApp(brandingAssetLoader: AppBrandingAssets.load));
 }
 
 class MyApp extends StatelessWidget {
@@ -24,11 +25,13 @@ class MyApp extends StatelessWidget {
     this.authenticator,
     this.registrar,
     this.profileLoader,
+    this.brandingAssetLoader,
   });
 
   final Authenticator? authenticator;
   final AccountRegistrar? registrar;
   final UserProfileLoader? profileLoader;
+  final AppBrandingAssetsLoader? brandingAssetLoader;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +39,7 @@ class MyApp extends StatelessWidget {
       authenticator: authenticator,
       registrar: registrar,
       profileLoader: profileLoader,
+      brandingAssetLoader: brandingAssetLoader,
     );
   }
 }

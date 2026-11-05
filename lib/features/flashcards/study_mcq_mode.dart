@@ -1,12 +1,18 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'flashcard_models.dart';
 import 'flashcard_service.dart';
 
 class StudyMcqModeScreen extends StatefulWidget {
-  const StudyMcqModeScreen({super.key, required this.deck, required this.shuffle});
+  const StudyMcqModeScreen({
+    super.key,
+    required this.deck,
+    required this.shuffle,
+  });
   final FlashcardDeck deck;
   final bool shuffle;
 
@@ -75,10 +81,15 @@ class _StudyMcqModeScreenState extends State<StudyMcqModeScreen> {
         barrierDismissible: false,
         builder: (_) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E2E),
-          title: Text('Kết quả Trắc nghiệm: $_score / ${_cards.length}', style: GoogleFonts.outfit(color: Colors.white)),
+          title: Text(
+            'Kết quả Trắc nghiệm: $_score / ${_cards.length}',
+            style: GoogleFonts.outfit(color: Colors.white),
+          ),
           actions: [
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF89B4FA)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF89B4FA),
+              ),
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.pop(context);
@@ -97,7 +108,9 @@ class _StudyMcqModeScreenState extends State<StudyMcqModeScreen> {
       return Scaffold(
         backgroundColor: const Color(0xFF11111B),
         appBar: AppBar(title: const Text('Trắc nghiệm A/B/C/D')),
-        body: const Center(child: Text('Không có thẻ.', style: TextStyle(color: Colors.white))),
+        body: const Center(
+          child: Text('Không có thẻ.', style: TextStyle(color: Colors.white)),
+        ),
       );
     }
 
@@ -107,13 +120,19 @@ class _StudyMcqModeScreenState extends State<StudyMcqModeScreen> {
       backgroundColor: const Color(0xFF11111B),
       appBar: AppBar(
         backgroundColor: const Color(0xFF181825),
-        title: Text('Trắc nghiệm: ${widget.deck.title}', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16)),
+        title: Text(
+          'Trắc nghiệm: ${widget.deck.title}',
+          style: GoogleFonts.outfit(color: Colors.white, fontSize: 16),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            LinearProgressIndicator(value: (_index + 1) / _cards.length, color: const Color(0xFF89B4FA)),
+            LinearProgressIndicator(
+              value: (_index + 1) / _cards.length,
+              color: const Color(0xFF89B4FA),
+            ),
             const Gap(32),
             Container(
               width: double.infinity,
@@ -125,9 +144,24 @@ class _StudyMcqModeScreenState extends State<StudyMcqModeScreen> {
               ),
               child: Column(
                 children: [
-                  Text('CÂU HỎI', style: GoogleFonts.outfit(color: const Color(0xFF89B4FA), fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(
+                    'CÂU HỎI',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF89B4FA),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const Gap(12),
-                  Text(card.front, textAlign: TextAlign.center, style: GoogleFonts.outfit(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(
+                    card.front,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -148,12 +182,24 @@ class _StudyMcqModeScreenState extends State<StudyMcqModeScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: btnColor,
-                      foregroundColor: _answered && (opt == card.back || opt == _selectedOption) ? Colors.black : Colors.white,
+                      foregroundColor:
+                          _answered &&
+                              (opt == card.back || opt == _selectedOption)
+                          ? Colors.black
+                          : Colors.white,
                       padding: const EdgeInsets.all(16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     onPressed: _answered ? null : () => _answer(opt),
-                    child: Text(opt, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      opt,
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -161,9 +207,19 @@ class _StudyMcqModeScreenState extends State<StudyMcqModeScreen> {
             const Spacer(),
             if (_answered)
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF89B4FA), foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 48)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF89B4FA),
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(double.infinity, 48),
+                ),
                 onPressed: _nextCard,
-                child: Text('Tiếp theo', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: Text(
+                  'Tiếp theo',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ),
           ],
         ),

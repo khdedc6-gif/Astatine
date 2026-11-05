@@ -344,13 +344,15 @@ class AtomicReactionLogic {
       for (final center in atoms.where(
         (atom) => atom.element.symbol == definition.centralElement,
       )) {
-        final peripheralIds = (covalentNeighbors[center.id] ?? const <String>{})
-            .where(
-              (id) =>
-                  atomsById[id]?.element.symbol == definition.peripheralElement,
-            )
-            .toList()
-          ..sort();
+        final peripheralIds =
+            (covalentNeighbors[center.id] ?? const <String>{})
+                .where(
+                  (id) =>
+                      atomsById[id]?.element.symbol ==
+                      definition.peripheralElement,
+                )
+                .toList()
+              ..sort();
         if (peripheralIds.length != definition.peripheralCount) continue;
         groups.add(
           PolyatomicGroupInstance(

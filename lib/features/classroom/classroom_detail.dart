@@ -4,6 +4,7 @@ import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/core/ui/discord_ui.dart';
 import 'package:astatine_dashboard/core/ui/glide_select.dart';
 import 'package:astatine_dashboard/core/ui/hover_ripple.dart';
+import 'package:astatine_dashboard/core/ui/loading_skeleton.dart';
 import 'package:astatine_dashboard/core/ui/smooth_mouse_scroll_controller.dart';
 
 import 'chat_screen.dart';
@@ -132,7 +133,7 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return const ClassroomChannelCardsSkeleton();
     if (_loadError != null) {
       return Center(
         child: Padding(
@@ -185,14 +186,14 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> {
                 final isPrivate = channel['is_private'] as bool? ?? false;
 
                 return HoverRipple(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                   color: _colors.accent,
                   child: Card(
                     margin: EdgeInsets.zero,
                     color: _colors.panel,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       side: BorderSide(color: _colors.border),
                     ),
                     child: ListTile(
@@ -313,26 +314,17 @@ class _CreateChannelSheetState extends State<_CreateChannelSheet> {
                 _allowedRoles = value ? 'teacher_only' : 'all';
               }),
             ),
-            DropdownButtonFormField<String>(
-              initialValue: _allowedRoles,
+            GlideSelect<String>.dropdown(
+              value: _allowedRoles,
               decoration: const InputDecoration(
                 labelText: 'Allowed roles',
                 border: OutlineInputBorder(),
               ),
-              items: [
-                DropdownMenuItem(
-                  value: 'all',
-                  child: GlideSelect(
-                    selected: _allowedRoles == 'all',
-                    child: const Text('All members'),
-                  ),
-                ),
-                DropdownMenuItem(
+              options: [
+                GlideSelectOption(value: 'all', label: 'All members'),
+                GlideSelectOption(
                   value: 'teacher_only',
-                  child: GlideSelect(
-                    selected: _allowedRoles == 'teacher_only',
-                    child: const Text('Teachers only'),
-                  ),
+                  label: 'Teachers only',
                 ),
               ],
               onChanged: (value) {

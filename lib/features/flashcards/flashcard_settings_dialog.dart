@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'flashcard_service.dart';
 
 class FlashcardSettingsDialog extends StatefulWidget {
   const FlashcardSettingsDialog({super.key});
 
   @override
-  State<FlashcardSettingsDialog> createState() => _FlashcardSettingsDialogState();
+  State<FlashcardSettingsDialog> createState() =>
+      _FlashcardSettingsDialogState();
 }
 
 class _FlashcardSettingsDialogState extends State<FlashcardSettingsDialog> {
@@ -42,7 +44,8 @@ class _FlashcardSettingsDialogState extends State<FlashcardSettingsDialog> {
   Future<void> _save() async {
     await FlashcardService.saveSettings({
       'reminderEnabled': _reminderEnabled,
-      'reminderTime': '${_reminderTime.hour.toString().padLeft(2, '0')}:${_reminderTime.minute.toString().padLeft(2, '0')}',
+      'reminderTime':
+          '${_reminderTime.hour.toString().padLeft(2, '0')}:${_reminderTime.minute.toString().padLeft(2, '0')}',
       'shuffleMode': _shuffleMode,
       'reverseCard': _reverseCard,
     });
@@ -60,12 +63,19 @@ class _FlashcardSettingsDialogState extends State<FlashcardSettingsDialog> {
           const Gap(12),
           Text(
             'Cài đặt & Nhắc nhở Flashcard',
-            style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
       content: _isLoading
-          ? const SizedBox(height: 150, child: Center(child: CircularProgressIndicator()))
+          ? const SizedBox(
+              height: 150,
+              child: Center(child: CircularProgressIndicator()),
+            )
           : SizedBox(
               width: 420,
               child: Column(
@@ -73,22 +83,49 @@ class _FlashcardSettingsDialogState extends State<FlashcardSettingsDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SwitchListTile(
-                    title: Text('Bật nhắc nhở ôn tập hàng ngày', style: GoogleFonts.outfit(color: Colors.white)),
-                    subtitle: Text('Nhận thông báo in-app & banner đúng giờ', style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12)),
+                    title: Text(
+                      'Bật nhắc nhở ôn tập hàng ngày',
+                      style: GoogleFonts.outfit(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      'Nhận thông báo in-app & banner đúng giờ',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
                     value: _reminderEnabled,
                     onChanged: (val) => setState(() => _reminderEnabled = val),
                   ),
                   if (_reminderEnabled) ..._buildReminderTimePicker(),
                   const Divider(color: Colors.white24, height: 24),
                   SwitchListTile(
-                    title: Text('Xáo trộn thứ tự thẻ (Shuffle Mode)', style: GoogleFonts.outfit(color: Colors.white)),
-                    subtitle: Text('Trộn ngẫu nhiên danh sách thẻ trong mỗi phiên', style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12)),
+                    title: Text(
+                      'Xáo trộn thứ tự thẻ (Shuffle Mode)',
+                      style: GoogleFonts.outfit(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      'Trộn ngẫu nhiên danh sách thẻ trong mỗi phiên',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
                     value: _shuffleMode,
                     onChanged: (val) => setState(() => _shuffleMode = val),
                   ),
                   SwitchListTile(
-                    title: Text('Đảo chiều thẻ (Mặt sau -> Mặt trước)', style: GoogleFonts.outfit(color: Colors.white)),
-                    subtitle: Text('Hiển thị Đáp án trước, Câu hỏi sau', style: GoogleFonts.outfit(color: Colors.white54, fontSize: 12)),
+                    title: Text(
+                      'Đảo chiều thẻ (Mặt sau -> Mặt trước)',
+                      style: GoogleFonts.outfit(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      'Hiển thị Đáp án trước, Câu hỏi sau',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
                     value: _reverseCard,
                     onChanged: (val) => setState(() => _reverseCard = val),
                   ),
@@ -101,9 +138,15 @@ class _FlashcardSettingsDialogState extends State<FlashcardSettingsDialog> {
           child: Text('Hủy', style: GoogleFonts.outfit(color: Colors.white54)),
         ),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF89B4FA), foregroundColor: Colors.black),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF89B4FA),
+            foregroundColor: Colors.black,
+          ),
           onPressed: _save,
-          child: Text('Lưu cài đặt', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          child: Text(
+            'Lưu cài đặt',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
@@ -117,11 +160,20 @@ class _FlashcardSettingsDialogState extends State<FlashcardSettingsDialog> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Thời gian nhắc nhở:', style: GoogleFonts.outfit(color: Colors.white70)),
+            Text(
+              'Thời gian nhắc nhở:',
+              style: GoogleFonts.outfit(color: Colors.white70),
+            ),
             OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF89B4FA), side: const BorderSide(color: Color(0xFF89B4FA))),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF89B4FA),
+                side: const BorderSide(color: Color(0xFF89B4FA)),
+              ),
               icon: const Icon(Icons.access_time, size: 16),
-              label: Text(_reminderTime.format(context), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              label: Text(
+                _reminderTime.format(context),
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+              ),
               onPressed: () async {
                 final picked = await showTimePicker(
                   context: context,

@@ -330,6 +330,50 @@ void main() {
     );
   });
 
+  test('covers acid and oxide combinations across oxide types', () {
+    final copperOxide = ChemicalCatalog.reagents.firstWhere(
+      (chemical) => chemical.formula == 'CuO',
+    );
+    final nitricAcid = ChemicalCatalog.reagents.firstWhere(
+      (chemical) => chemical.formula == 'HNO3',
+    );
+    final carbonDioxide = ChemicalCatalog.reagents.firstWhere(
+      (chemical) => chemical.formula == 'CO2',
+    );
+    final calciumOxide = ChemicalCatalog.reagents.firstWhere(
+      (chemical) => chemical.formula == 'CaO',
+    );
+    final aluminiumOxide = ChemicalCatalog.reagents.firstWhere(
+      (chemical) => chemical.formula == 'Al2O3',
+    );
+    final sodiumHydroxide = ChemicalCatalog.reagents.firstWhere(
+      (chemical) => chemical.formula == 'NaOH',
+    );
+
+    expect(
+      engine.evaluateReaction(copperOxide, nitricAcid)?.equation,
+      'CuO + 2HNO3 → Cu(NO3)2 + H2O',
+    );
+    expect(
+      engine.evaluateReaction(carbonDioxide, calciumOxide)?.equation,
+      'CO2 + CaO → CaCO3↓',
+    );
+    expect(
+      engine.evaluateReaction(
+        aluminiumOxide,
+        sodiumHydroxide,
+        temperature: 299,
+      ),
+      isNull,
+    );
+    expect(
+      engine
+          .evaluateReaction(aluminiumOxide, sodiumHydroxide, temperature: 300)
+          ?.equation,
+      'Al2O3 + 2NaOH → 2NaAlO2 + H2O',
+    );
+  });
+
   test('queues sodium water reaction before copper sulfate precipitation', () {
     final copperSulfate = ChemicalCatalog.reagents.firstWhere(
       (chemical) => chemical.formula == 'CuSO4',

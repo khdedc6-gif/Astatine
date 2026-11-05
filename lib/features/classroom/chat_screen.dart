@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:astatine_dashboard/core/localization/app_localizations.dart';
 import 'package:astatine_dashboard/core/notifications/toast.dart';
 import 'package:astatine_dashboard/core/ui/discord_ui.dart';
+import 'package:astatine_dashboard/core/ui/loading_skeleton.dart';
 import 'package:astatine_dashboard/core/ui/smooth_mouse_scroll_controller.dart';
 import 'package:astatine_dashboard/features/profile/user_profile_avatar.dart';
 import 'package:astatine_dashboard/features/profile/subscription_name_effect.dart';
@@ -120,7 +121,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   String get _messageFilterColumn => widget.classroomGroupId != null
       ? 'seating_column_id'
-      : widget.privateConversationId != null || widget.directConversationId != null
+      : widget.privateConversationId != null ||
+            widget.directConversationId != null
       ? 'conversation_id'
       : 'channel_id';
 
@@ -201,17 +203,15 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  void _handleRealtimeInsert(
-    PostgresChangePayload payload,
-    int generation,
-  ) {
+  void _handleRealtimeInsert(PostgresChangePayload payload, int generation) {
     if (!mounted ||
         generation != _feedGeneration ||
         payload.newRecord.isEmpty) {
       return;
     }
     final message = Map<String, dynamic>.from(payload.newRecord);
-    final shouldScroll = !_scrollController.hasClients ||
+    final shouldScroll =
+        !_scrollController.hasClients ||
         _scrollController.position.maxScrollExtent -
                 _scrollController.position.pixels <
             120;
@@ -231,7 +231,9 @@ class _ChatScreenState extends State<ChatScreen> {
       ..clear()
       ..addAll(byId.values)
       ..sort((left, right) {
-        final leftTime = DateTime.tryParse(left['created_at']?.toString() ?? '');
+        final leftTime = DateTime.tryParse(
+          left['created_at']?.toString() ?? '',
+        );
         final rightTime = DateTime.tryParse(
           right['created_at']?.toString() ?? '',
         );
@@ -365,7 +367,10 @@ class _ChatScreenState extends State<ChatScreen> {
         if (widget.assignmentChat) _buildAssignmentChatNotice(),
         Expanded(
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? ChatMessagesSkeleton(
+                  label: _label('Loading messages', 'Đang tải tin nhắn'),
+                  assignmentChat: widget.assignmentChat,
+                )
               : _loadError != null && _messages.isEmpty
               ? Center(
                   child: Text(
@@ -476,7 +481,7 @@ class _ChatScreenState extends State<ChatScreen> {
     padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
     decoration: BoxDecoration(
       color: _colors.accent.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(8),
       border: Border.all(color: _colors.accent.withValues(alpha: 0.16)),
     ),
     child: Row(
@@ -516,12 +521,12 @@ class _ChatScreenState extends State<ChatScreen> {
               child: TextField(
                 controller: _messageController,
                 maxLength: 2000,
-                buildCounter:
-                    (context, {
-                      required currentLength,
-                      required isFocused,
-                      maxLength,
-                    }) => null,
+                buildCounter: (
+                  context, {
+                  required currentLength,
+                  required isFocused,
+                  maxLength,
+                }) => null,
                 style: TextStyle(color: _colors.text),
                 minLines: 1,
                 maxLines: 4,
